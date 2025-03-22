@@ -1,4 +1,4 @@
-# Warped Realms Core
+# ChimpyGL
 
 ## More information
 

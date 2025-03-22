@@ -12,8 +12,8 @@ endif()
 if (NOT ${target}_FOUND)
   message("${target} not found, fetching git repository")
 
-  set(source_dir ${CMAKE_CURRENT_LIST_DIR}/Extern/extern-${target})
-  set(bin_dir ${CMAKE_BINARY_DIR}/Extern/extern-${target}-build)
+  set(source_dir ${CMAKE_CURRENT_LIST_DIR}/extern/extern-${target})
+  set(bin_dir ${CMAKE_BINARY_DIR}/extern/extern-${target}-build)
 
   string(TOUPPER ${target} target_UPPER)
 

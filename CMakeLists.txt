@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.20.0)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS YES)
 
 project(ChimpyGL VERSION 1.0.0 LANGUAGES CXX)
@@ -17,7 +18,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   set(CMAKE_EXE_LINKER_FLAGS -lstdc++)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/Cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 set(CMAKE_THREAD_LIBS_INIT "-lpthread")
 set(CMAKE_HAVE_THREADS_LIBRARY 1)
@@ -59,15 +60,15 @@ target_include_directories(box2cpp INTERFACE ${BOX2CPP_PATH}/include)
 
 # dependencies
 FindOrCloneRep("imgui" "https://github.com/ocornut/imgui.git" "master" OFF)
-set(IMGUI_PATH  "Extern/extern-imgui")
+set(IMGUI_PATH  "extern/extern-imgui")
 file(GLOB IMGUI_SOURCES ${IMGUI_PATH}/*.cpp)
 add_library(imgui STATIC ${IMGUI_SOURCES}
     ${IMGUI_PATH}/backends/imgui_impl_glfw.cpp
     ${IMGUI_PATH}/backends/imgui_impl_opengl3.cpp
     # ${IMGUI_PATH}/backends/imgui_impl_opengl3_loader.cpp
 )
-target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_LIST_DIR}/Extern/extern-imgui")
-target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_LIST_DIR}/Extern/extern-imgui/backends")
+target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_LIST_DIR}/extern/extern-imgui")
+target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_LIST_DIR}/extern/extern-imgui/backends")
 target_link_libraries(imgui PUBLIC glfw)
 
 #dependencies
@@ -157,6 +158,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_definitions(DEBUG)
 endif()
 
-add_subdirectory(Source)
-add_subdirectory(GameModule)
-add_subdirectory(Examples)
+add_subdirectory(chimpy)
+add_subdirectory(modules)
+add_subdirectory(examples)
