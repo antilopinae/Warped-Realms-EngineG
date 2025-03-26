@@ -33,7 +33,7 @@ if (NOT ${target}_FOUND)
 
   if(EXISTS ${source_dir})
     set(FETCHCONTENT_SOURCE_DIR_${target_UPPER} ${source_dir})
-    message("${target} ALREADY DOWNLOADED!")
+    message("${target} downloaded")
   endif()
 
   option(${target_UPPER}_ENABLE_INSTALL "Enable install" OFF)

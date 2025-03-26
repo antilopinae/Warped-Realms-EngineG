@@ -3,7 +3,7 @@
 #include <cstring>
 #include <quickjs.h>
 
-void ChimpyGL() {
+void ExQuickJs() {
   // JS_Init();
   // std::cout << "SpiderMonkey initialized!" << std::endl;
   // JS_ShutDown();

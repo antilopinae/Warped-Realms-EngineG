@@ -1,8 +1,6 @@
 #include "SimpleUDPServer.hpp"
 
 #include "UDPServer.hpp"
-#include "tutorial//SimpleClient.hpp"
-#include "tutorial//SimpleServer.hpp"
 #include "UDPSession.hpp"
 
 #include <asio.hpp>
@@ -69,8 +67,8 @@ void StartUDP() {
   asio::io_context ioContext;
 
   using namespace UDP;
-  auto server = std::thread([&]() {  startCustomServer(); });
-  auto client = std::thread([&]() {  startCustomClient(); });
+  auto server = std::thread([&]() {  });
+  auto client = std::thread([&]() {  });
   client.join();
   server.join();
   // Server server{ioContext, port};
