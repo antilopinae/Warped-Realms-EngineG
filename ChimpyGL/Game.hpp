@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include "SDL.hpp"
+#include "Network.hpp"
 
 namespace EngineG{
 
@@ -36,6 +37,16 @@ private:
     void GenerateOutput();
     void LoadData();
     void UnloadData();
+
+    // --- Networking ---
+    void ProcessNetworkMessages(); // New function to handle incoming messages
+    void SendInputToServer();     // New function to send local input
+
+    GameClient mClient;          // The network client instance
+    uint32_t mPlayerID = 0;      // This client's unique ID assigned by the server
+    // Map of remote player IDs to their Ship actors
+    std::unordered_map<uint32_t, class Ship*> mOtherPlayerShips;
+    bool mIsConnected = false;   // Track connection status
 
     // Map of textures loaded
     std::unordered_map<std::string, SDL_Texture*> mTextures;

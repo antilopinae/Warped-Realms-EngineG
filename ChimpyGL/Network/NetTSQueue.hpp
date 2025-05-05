@@ -61,7 +61,6 @@ public:
         deqQueue.clear();
     }
 
-    // Removes and returns item from front of Queue
     T pop_front()
     {
         std::scoped_lock lock(muxQueue);
@@ -78,7 +77,7 @@ public:
         return t;
     }
 
-    void Wait()
+    void wait()
     {
         while (empty())
         {
