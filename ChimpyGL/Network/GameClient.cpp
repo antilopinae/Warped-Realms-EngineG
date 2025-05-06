@@ -12,9 +12,4 @@ void GameClient::SendInputUpdate(const PlayerInput& currentInput) {
   Send(msg);
 }
 
-void GameClient::RequestWorldState() {
-  Message<GameMsgTypes> msg = CreateMsgClientRequestWorld();
-  Send(msg);
-}
-
 }

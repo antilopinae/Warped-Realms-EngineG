@@ -28,8 +28,8 @@ Ship::Ship(class Game* game)
       game->GetTexture("Assets/Ship03.png"),
       game->GetTexture("Assets/Ship04.png"),
 #endif
-    game->GetTexture("Assets/Ship.png"),
-    game->GetTexture("Assets/ShipWithThrust.png")
+    game->GetTexture(ASSETS_DIR"Assets/Ship.png"),
+    game->GetTexture(ASSETS_DIR"Assets/ShipWithThrust.png")
   };
   mAnimSprite->SetAnimTextures(anims);
   mAnimSprite->SetAnimRanges({

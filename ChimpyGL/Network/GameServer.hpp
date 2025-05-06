@@ -13,7 +13,7 @@
 
 namespace EngineG::Network {
 
-class Player {
+struct Player {
     std::unique_ptr<EngineG::Ship> ship = nullptr;
 
     PlayerInput lastInput;

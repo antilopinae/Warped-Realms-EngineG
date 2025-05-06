@@ -15,7 +15,7 @@ Character::Character(class Game *game): Actor(game), speed(0.f)
   for (int i = 1; i < 19; i++)
   {
     std::ostringstream oss;
-    oss << "Assets/Character" << std::setw(2) << std::setfill('0') << i << ".png";
+    oss << ASSETS_DIR"Assets/Character" << std::setw(2) << std::setfill('0') << i << ".png";
     std::string path = oss.str();
 
     anims.push_back(game->GetTexture(path));

@@ -75,7 +75,7 @@ inline Message<GameMsgTypes> CreateMessage(GameMsgTypes type, Args&&... args) {
 }
 
 // ---------- ServerAccept ----------
-struct ServerAcceptPayload {
+struct ServerAccept {
     uint32_t clientID;
 };
 
@@ -83,14 +83,14 @@ inline Message<GameMsgTypes> CreateMsgServerAccept(uint32_t clientID) {
     return CreateMessage(GameMsgTypes::ServerAccept, clientID);
 }
 
-inline ServerAcceptPayload ParseMsgServerAccept(Message<GameMsgTypes>& msg) {
-    ServerAcceptPayload payload;
+inline ServerAccept ParseMsgServerAccept(Message<GameMsgTypes>& msg) {
+    ServerAccept payload;
     msg >> payload.clientID;
     return payload;
 }
 
 // ---------- ServerPing ----------
-struct ServerPingPayload {
+struct ServerPing {
     int64_t timestamp;
 };
 
@@ -98,14 +98,14 @@ inline Message<GameMsgTypes> CreateMsgServerPing(int64_t timestamp) {
     return CreateMessage(GameMsgTypes::ServerPing, timestamp);
 }
 
-inline ServerPingPayload ParseMsgServerPing(Message<GameMsgTypes>& msg) {
-    ServerPingPayload payload;
+inline ServerPing ParseMsgServerPing(Message<GameMsgTypes>& msg) {
+    ServerPing payload;
     msg >> payload.timestamp;
     return payload;
 }
 
 // ---------- GamePlayerDisconnect ----------
-struct GamePlayerDisconnectPayload {
+struct PlayerDisconnect {
     uint32_t clientID;
 };
 
@@ -113,8 +113,8 @@ inline Message<GameMsgTypes> CreateMsgGamePlayerDisconnect(uint32_t clientID) {
     return CreateMessage(GameMsgTypes::GamePlayerDisconnect, clientID);
 }
 
-inline GamePlayerDisconnectPayload ParseMsgGamePlayerDisconnect(Message<GameMsgTypes>& msg) {
-    GamePlayerDisconnectPayload payload;
+inline PlayerDisconnect ParseMsgGamePlayerDisconnect(Message<GameMsgTypes>& msg) {
+    PlayerDisconnect payload;
     msg >> payload.clientID;
     return payload;
 }

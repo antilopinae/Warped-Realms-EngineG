@@ -8,6 +8,14 @@
 #include "SDL.hpp"
 #include "Network.hpp"
 
+#ifdef DEBUG
+#define ASSETS_DIR "../../"
+
+#else
+#define ASSETS_DIR ""
+
+#endif
+
 namespace EngineG{
 
 class Game
@@ -39,14 +47,15 @@ private:
     void UnloadData();
 
     // --- Networking ---
-    void ProcessNetworkMessages(); // New function to handle incoming messages
-    void SendInputToServer();     // New function to send local input
+    void ProcessNetworkMessages();
+    void SendInputToServer(const Uint8* keyState);
 
-    GameClient mClient;          // The network client instance
-    uint32_t mPlayerID = 0;      // This client's unique ID assigned by the server
-    // Map of remote player IDs to their Ship actors
-    std::unordered_map<uint32_t, class Ship*> mOtherPlayerShips;
-    bool mIsConnected = false;   // Track connection status
+    Network::GameClient mClient;
+    Network::GameServer mServer; // non-active
+
+    uint32_t mPlayerID = 0;
+    std::unordered_map<uint32_t, class Ship*> mOtherShips;
+    bool mIsConnected = false;
 
     // Map of textures loaded
     std::unordered_map<std::string, SDL_Texture*> mTextures;

@@ -13,8 +13,9 @@ Game::Game()
 ,mRenderer(nullptr)
 ,mIsRunning(true)
 ,mUpdatingActors(false)
+,mClient()
+,mServer(80000)
 {
-
 }
 
 bool Game::Initialize()
@@ -48,6 +49,9 @@ bool Game::Initialize()
     Random::Init();
 
     LoadData();
+
+    mServer.Start();
+    mClient.Connect("127.0.0.1", 80000);
 
     mTicksCount = SDL_GetTicks();
 
@@ -97,25 +101,15 @@ void Game::ProcessInput()
     mUpdatingActors = false;
 }
 
-void Game::SendInputToServer() {
-  if (!mIsConnected || !mPlayerShip) return;
-
-  const Uint8* keyState = SDL_GetKeyboardState(NULL); // Get current state again
-
-  Network::Message<Network::CustomMsgTypes> msg;
-  msg.header.id = Network::CustomMsgTypes::Client_InputUpdate;
-
-  Network::PlayerStateInput input;
-  // Check keys relevant to Ship's InputComponent
-  // Assuming default keys W, S, A, D, Space
+void Game::SendInputToServer(const Uint8* keyState) {
+  Network::PlayerInput input;
   input.forward = keyState[SDL_SCANCODE_W];
   input.back = keyState[SDL_SCANCODE_S];
   input.left = keyState[SDL_SCANCODE_A];
   input.right = keyState[SDL_SCANCODE_D];
   input.fire = keyState[SDL_SCANCODE_SPACE];
 
-  // Pack the data (reverse order of reading for easier debugging)
-  msg << input.forward << input.back << input.left << input.right << input.fire;
+  auto msg = Network::CreateMsgClientInputUpdate(input);
 
   mClient.Send(msg);
 }
@@ -134,25 +128,24 @@ void Game::UpdateGame()
     }
     mTicksCount = SDL_GetTicks();
 
-  // Check connection status
-  mIsConnected = mClient.IsConnected();
+    mIsConnected = mClient.IsConnected();
 
-  // 1. Process incoming network messages
-  if (mIsConnected) {
-    ProcessNetworkMessages();
-  } else {
-    if (mPlayerID != 0) { // Check if we *were* connected
-      std::cout << "[CLIENT] Disconnected from server." << std::endl;
-      // Handle disconnection logic (e.g., remove other players, show message)
-      for (auto const& [id, ship] : mOtherPlayerShips) {
-        RemoveActor(ship); // This should trigger deletion
+    if (mIsConnected) {
+      ProcessNetworkMessages();
+    } else {
+      if (mPlayerID != 0) {
+        std::cout << "[CLIENT] Disconnected from server." << std::endl;
+        mPlayerID = 0;
+        if (mShip) mShip->SetState(Actor::EPaused);
+
+        // Handle disconnection logic
+        for (auto const& [id, ship] : mOtherShips) {
+          RemoveActor(ship);
+        }
+        mOtherShips.clear();
+        mPlayerID = 0; // Reset player ID
       }
-      mOtherPlayerShips.clear();
-      mPlayerID = 0; // Reset player ID
-      // Maybe disable player input, etc.
-      if (mPlayerShip) mPlayerShip->SetState(Actor::EPaused);
     }
-  }
 
     // Update all actors
     mUpdatingActors = true;
@@ -191,160 +184,45 @@ void Game::ProcessNetworkMessages()
   while (!mClient.IncomingMessages().empty())
   {
     auto ownedMsg = mClient.IncomingMessages().pop_front();
-    auto message = ownedMsg.message; // Get the message part
-  }
+    auto message = ownedMsg.message;
 
-  switch (message.header.id) {
-    case Network::CustomMsgTypes::ServerAccept:
-    {
-      // Server approved connection and sent our ID
-      message >> mPlayerID;
-      std::cout << "[CLIENT] Server accepted connection. My ID: " << mPlayerID << std::endl;
-      // Now we can fully activate the local player ship
-      if (mPlayerShip) mPlayerShip->SetState(Actor::EActive);
-      // Optionally, send a "Client_RequestWorld" message here if needed
-    }
-    break;
+    switch (message.header.id) {
+      case Network::GameMsgTypes::ServerAccept:
+      {
+        auto accept = Network::ParseMsgServerAccept(message);
+        mPlayerID = accept.clientID;
+        std::cout << "[CLIENT] Server accepted connection. My ID: " << mPlayerID << std::endl;
+        if (mShip) mShip->SetState(Actor::EActive);
+      }
+      break;
 
-    case Network::CustomMsgTypes::ServerDeny:
-    {
-      std::cout << "[CLIENT] Server denied connection." << std::endl;
-      mIsRunning = false; // Or handle differently
-    }
-    break;
+      case Network::GameMsgTypes::ServerPing:
+      {
+        auto ping = Network::ParseMsgServerPing(message);
+        std::chrono::system_clock::time_point timeNow = std::chrono::system_clock::now();
+        std::chrono::system_clock::time_point timePrev {std::chrono::milliseconds(ping.timestamp)};
+        std::cout << "[CLIENT] Ping: " << std::chrono::duration<double>(timeNow - timePrev).count() << std::endl;
+      }
+      break;
 
-    case Network::CustomMsgTypes::ServerPing:
-    {
-      // Handle ping response if implementing latency check
-      // std::chrono::system_clock::time_point timeNow = std::chrono::system_clock::now();
-      // std::chrono::system_clock::time_point timePrev;
-      // message >> timePrev;
-      // std::cout << "[CLIENT] Ping: " << std::chrono::duration<double>(timeNow - timePrev).count() << std::endl;
-    }
-    break;
-
-    case Network::CustomMsgTypes::Game_WorldState:
-    {
-      uint32_t playerCount = 0;
-      message >> playerCount;
-      // std::cout << "World state received for " << playerCount << " players." << std::endl;
-
-      std::unordered_map<uint32_t, bool> receivedPlayers; // Track players in this update
-
-      for (uint32_t i = 0; i < playerCount; ++i) {
-        Network::PlayerState state;
-        // Read in reverse order of writing
-        message >> state.playerID
-                >> state.posX >> state.posY >> state.rotation
-                >> state.velX >> state.velY // Read optional velocity
-                >> state.animState // Read optional anim state
-                >> state.isVisible; // Read visibility
-
-        receivedPlayers[state.playerID] = true;
-
-        if (state.playerID == mPlayerID) {
-          // This is the state of our own ship according to the server.
-          // --- Reconciliation Logic (Advanced) ---
-          // Compare server state (state.posX, state.posY) with local state (mPlayerShip->GetPosition())
-          // If they differ significantly, smoothly correct the local ship's position.
-          // For now, we ignore the server's state for our own ship to avoid jitter.
-          // We could update animation/visibility based on server though.
-          if(mPlayerShip) {
-            auto* animComp = mPlayerShip->GetComponent<AnimSpriteComponent>();
-            if (animComp) {
-              if (animComp->GetNumAnim() != state.animState) {
-                animComp->SetNumAnim(state.animState);
-              }
-              if (animComp->IsVisible() != state.isVisible) {
-                animComp->SetVisible(state.isVisible);
-              }
-            }
-          }
-        } else {
-          // This is state for another player's ship
-          auto it = mOtherPlayerShips.find(state.playerID);
-          if (it != mOtherPlayerShips.end()) {
-            // Ship exists, update its state (interpolation needed for smoothness)
-            Ship* ship = it->second;
-            ship->SetPosition(Vector2(state.posX, state.posY));
-            ship->SetRotation(state.rotation);
-            // Update animation / visibility
-            auto* animComp = ship->GetComponent<AnimSpriteComponent>();
-            if (animComp) {
-              if (animComp->GetNumAnim() != state.animState) {
-                animComp->SetNumAnim(state.animState);
-              }
-              if (animComp->IsVisible() != state.isVisible) {
-                animComp->SetVisible(state.isVisible);
-              }
-            }
-            // TODO: Update velocity in MoveComponent if needed for client-side interpolation
-
-          } else {
-            // Ship doesn't exist, create it
-            std::cout << "[CLIENT] Spawning ship for player " << state.playerID << std::endl;
-            Ship* newShip = new Ship(this); // Create a new ship actor
-            newShip->SetPosition(Vector2(state.posX, state.posY));
-            newShip->SetRotation(state.rotation);
-            newShip->SetState(Actor::EActive); // Make it active
-
-            // --- IMPORTANT: Disable input for remote ships ---
-            // newShip->RemoveComponent(newShip->GetComponent<InputComponent>()); // Or disable it
-            auto* inputComp = newShip->GetComponent<InputComponent>();
-            if(inputComp) inputComp->SetEnabled(false); // Add SetEnabled to Component base class?
-
-            // Update animation / visibility
-            auto* animComp = newShip->GetComponent<AnimSpriteComponent>();
-            if (animComp) {
-              animComp->SetNumAnim(state.animState);
-              animComp->SetVisible(state.isVisible);
-            }
-
-            mOtherPlayerShips[state.playerID] = newShip;
-            // AddActor(newShip); // Already done by Actor constructor
-          }
+      case Network::GameMsgTypes::GamePlayerDisconnect:
+      {
+        uint32_t disconnectedID = 0;
+        auto disc = Network::ParseMsgGamePlayerDisconnect(message);
+        disconnectedID = disc.clientID;
+        std::cout << "[CLIENT] Server announced player " << disconnectedID << " disconnected." << std::endl;
+        auto it = mOtherShips.find(disconnectedID);
+        if (it != mOtherShips.end()) {
+          RemoveActor(it->second); // Marks for deletion
+          mOtherShips.erase(it);
         }
       }
+      break;
 
-      // Check for players who were NOT in this update (disconnected)
-      std::vector<uint32_t> disconnectedIDs;
-      for (auto const& [id, ship] : mOtherPlayerShips) {
-        if (receivedPlayers.find(id) == receivedPlayers.end()) {
-          // This player wasn't in the update, assume disconnected
-          disconnectedIDs.push_back(id);
-        }
-      }
-
-      // Remove disconnected players
-      for (uint32_t id : disconnectedIDs) {
-        std::cout << "[CLIENT] Removing disconnected player " << id << std::endl;
-        auto it = mOtherPlayerShips.find(id);
-        if (it != mOtherPlayerShips.end()) {
-          RemoveActor(it->second); // Marks for deletion in next update loop
-          delete it->second; // Force deletion now? Be careful with game loop structure
-          mOtherPlayerShips.erase(it);
-        }
-      }
+      default:
+        std::cout << "[CLIENT] Unhandled message type: " << static_cast<uint32_t>(message.header.id) << std::endl;
+      break;
     }
-    break;
-    case Network::CustomMsgTypes::Game_PlayerDisconnect:
-    {
-      uint32_t disconnectedID = 0;
-      message >> disconnectedID;
-      std::cout << "[CLIENT] Server announced player " << disconnectedID << " disconnected." << std::endl;
-      auto it = mOtherPlayerShips.find(disconnectedID);
-      if (it != mOtherPlayerShips.end()) {
-        RemoveActor(it->second); // Marks for deletion
-        // delete it->second; // Or delete immediately
-        mOtherPlayerShips.erase(it);
-      }
-    }
-    break;
-
-    default:
-      std::cout << "[CLIENT] Unhandled message type: " << static_cast<uint32_t>(message.header.id) << std::endl;
-    break;
-
   }
 }
 

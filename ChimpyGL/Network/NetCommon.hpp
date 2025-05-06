@@ -16,14 +16,9 @@
 #define _WIN32_WINNT 0x0A00
 #endif
 
+#ifndef ASIO_STANDALONE
 #define ASIO_STANDALONE
+#endif
 #include <asio.hpp>
 #include <asio/ts/buffer.hpp>
 #include <asio/ts/internet.hpp>
-
-namespace EngineG::Network {
-template<typename T> class Connection;
-template<typename T> struct Message;
-template<typename T> struct OwnedMessage;
-template<typename T> class TSQueue;
-}
