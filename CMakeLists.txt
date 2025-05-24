@@ -34,10 +34,6 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 # dependencies
 FindOrCloneRep("box2d" "https://github.com/erincatto/box2d" "v3.0.0" ON)
-FindOrCloneRep("entt" "https://github.com/skypjack/entt.git" "master" ON)
-
-# dependencies
-FindOrCloneRep("quickjs" "https://github.com/bellard/quickjs" "master" ON)
 
 set(QUICKJS_DIR "${CMAKE_CURRENT_LIST_DIR}/extern/extern-quickjs")
 set(QUICKJS_LIB "${QUICKJS_DIR}/libquickjs.a")
@@ -79,24 +75,11 @@ set_target_properties(quickjs PROPERTIES
 FindOrCloneRep("SDL2" "https://github.com/libsdl-org/SDL.git" "main" ON)
 include_directories(${SDL2_INCLUDE_DIRS})
 
-# dependencies
-#FindOrCloneRep("box2cpp" "https://github.com/HolyBlackCat/box2cpp" "box2d-3.0.0" ON)
-#set(BOX2CPP_PATH  "extern/extern-box2cpp")
-#add_library(box2cpp INTERFACE)
-#target_include_directories(box2cpp INTERFACE ${BOX2CPP_PATH}/include)
-
-# # dependencies
-# FindOrCloneRep("imgui" "https://github.com/ocornut/imgui.git" "master" OFF)
-# set(IMGUI_PATH  "extern/extern-imgui")
-# file(GLOB IMGUI_SOURCES ${IMGUI_PATH}/*.cpp)
-# add_library(imgui STATIC ${IMGUI_SOURCES}
-#     ${IMGUI_PATH}/backends/imgui_impl_glfw.cpp
-#     ${IMGUI_PATH}/backends/imgui_impl_opengl3.cpp
-#     # ${IMGUI_PATH}/backends/imgui_impl_opengl3_loader.cpp
-# )
-# target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_LIST_DIR}/extern/extern-imgui")
-# target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_LIST_DIR}/extern/extern-imgui/backends")
-# target_link_libraries(imgui PUBLIC glfw)
+## dependencies
+#FindOrCloneRep("wasmtime-cpp" "https://github.com/bytecodealliance/wasmtime-cpp" "main" ON)
+#
+## dependencies
+#FindOrCloneRep("wasmtime" "https://github.com/bytecodealliance/wasmtime" "main" ON)
 
 #dependencies
 FindOrCloneRep("asio" "https://github.com/chriskohlhoff/asio.git" "asio-1-31-0" ON)
@@ -165,15 +148,10 @@ endif()
 find_package(box2d REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
-find_package(entt REQUIRED)
-find_package(quickjs REQUIRED)
-#find_package(box2cpp REQUIRED)
 find_package(asio REQUIRED)
 
 #dependencies
 find_package(OpenGL REQUIRED)
-#find_package(spdlog REQUIRED)
-#find_package(fmt REQUIRED)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_definitions(DEBUG)
@@ -182,3 +160,35 @@ endif()
 add_subdirectory(ChimpyGL)
 add_subdirectory(Game)
 add_subdirectory(Deploy)
+
+find_program(EMCC emcc)
+if(NOT EMCC)
+    message(FATAL_ERROR "emcc not found!")
+endif()
+set(WASM_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/Assets")
+set(EMCC_FLAGS
+        -Os
+        -s WASM=1
+#        -s STANDALONE_WASM=1
+        -s ALLOW_MEMORY_GROWTH=1
+        -s NO_FILESYSTEM=1
+        "-sEXPORTED_FUNCTIONS=[\"_initialize\",\"_update\",\"_terminate\",\"_allocate\",\"_deallocate\"]"
+#        "-sEXPORTED_RUNTIME_METHODS=[]"
+        --no-entry
+)
+
+function(add_wasm_module MODULE_NAME SOURCE_FILE)
+    set(OUTPUT_WASM "${WASM_OUTPUT_DIR}/${MODULE_NAME}.wasm")
+    add_custom_command(
+            OUTPUT ${OUTPUT_WASM}
+            COMMAND ${EMCC} ${SOURCE_FILE} -o ${OUTPUT_WASM} ${EMCC_FLAGS}
+            DEPENDS ${SOURCE_FILE}
+            COMMENT "Compiling ${SOURCE_FILE} to ${OUTPUT_WASM}"
+            VERBATIM
+    )
+    add_custom_target(${MODULE_NAME}_wasm ALL DEPENDS ${OUTPUT_WASM})
+endfunction()
+
+add_wasm_module(moduleA_c "${CMAKE_CURRENT_LIST_DIR}/WasmModules/moduleA_c.c")
+add_wasm_module(moduleB_c "${CMAKE_CURRENT_LIST_DIR}/WasmModules/moduleB_c.c")
+add_wasm_module(moduleC_c "${CMAKE_CURRENT_LIST_DIR}/WasmModules/moduleC_c.c")

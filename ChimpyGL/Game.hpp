@@ -7,14 +7,21 @@
 
 #include "SDL.hpp"
 #include "Network.hpp"
+// #include "WasmBridge.hpp"
 
 #ifdef DEBUG
-#define ASSETS_DIR "../../"
+#define ASSETS_DIR "../../Assets/"
 
 #else
-#define ASSETS_DIR ""
+#define ASSETS_DIR "Assets/"
 
 #endif
+
+constexpr char* WASM_FILE_PATH = ASSETS_DIR"simple_args.wasm";
+constexpr int SCREEN_WIDTH = 800;
+constexpr int SCREEN_HEIGHT = 600;
+constexpr char* FONT_PATH = ASSETS_DIR"Arial.ttf";
+constexpr int FONT_SIZE = 24;
 
 namespace EngineG{
 
@@ -62,10 +69,7 @@ private:
 
     // All the actors in the game
     std::vector<class Actor*> mActors;
-    // Any pending actors
     std::vector<class Actor*> mPendingActors;
-
-    // All the sprite components drawn
     std::vector<class SpriteComponent*> mSprites;
 
     SDL_Window* mWindow;
@@ -76,12 +80,10 @@ private:
     bool mUpdatingActors;
 
     // Game-specific
-    // class Ship* mShip; // Player's ship
     class Character* mCharcter;
     class Background* mBackground;
-
-    // Game-specific
-    class Ship* mShip; // Player's ship
+    class Ship* mShip;
+    
     std::vector<class Asteroid*> mAsteroids;
 };
 

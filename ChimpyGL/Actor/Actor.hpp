@@ -46,7 +46,6 @@ public:
 
     class Game* GetGame() { return mGame; }
 
-
     // Add/remove components
     void AddComponent(class Component* component);
     void RemoveComponent(class Component* component);

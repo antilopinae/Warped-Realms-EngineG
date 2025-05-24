@@ -23,13 +23,13 @@ Ship::Ship(class Game* game)
   mAnimSprite = new AnimSpriteComponent(this);
   std::vector<SDL_Texture*> anims = {
 #if 0
-      game->GetTexture("Assets/Ship01.png"),
-      game->GetTexture("Assets/Ship02.png"),
-      game->GetTexture("Assets/Ship03.png"),
-      game->GetTexture("Assets/Ship04.png"),
+      game->GetTexture("Ship01.png"),
+      game->GetTexture("Ship02.png"),
+      game->GetTexture("Ship03.png"),
+      game->GetTexture("Ship04.png"),
 #endif
-    game->GetTexture(ASSETS_DIR"Assets/Ship.png"),
-    game->GetTexture(ASSETS_DIR"Assets/ShipWithThrust.png")
+    game->GetTexture(ASSETS_DIR"Ship.png"),
+    game->GetTexture(ASSETS_DIR"ShipWithThrust.png")
   };
   mAnimSprite->SetAnimTextures(anims);
   mAnimSprite->SetAnimRanges({

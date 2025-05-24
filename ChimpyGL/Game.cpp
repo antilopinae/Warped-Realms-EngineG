@@ -53,6 +53,104 @@ bool Game::Initialize()
     mServer.Start();
     mClient.Connect("127.0.0.1", 80000);
 
+//     EngineG::Wasm::WasmBridge jsBridge;
+//
+//     if (!jsBridge.Initialize()) {
+//       std::cerr << "Failed to initialize HybridBridge." << std::endl;
+//     }
+//
+//     if (!jsBridge.RegisterNativeFunction("cpp_runWasmAdd", EngineG::Wasm::WasmBridge::NativeRunWasmAdd, 3)) {
+//       std::cerr << "Failed to register native WASM runner function." << std::endl;
+//       jsBridge.Shutdown();
+//     }
+//
+//     std::vector<uint8_t> wasmFileBytes = jsBridge.ReadFileBytes(WASM_FILE_PATH);
+//
+//     if (wasmFileBytes.empty()) {
+//       std::cerr << "WASM file is empty or could not be read: " << WASM_FILE_PATH << std::endl;
+//       jsBridge.Shutdown();
+//     }
+//
+//     JSValue jsWasmArrayBuffer = jsBridge.CreateArrayBufferFromBytes(wasmFileBytes);
+//     if (JS_IsException(jsWasmArrayBuffer)) {
+//       std::cerr << "Failed to create JS ArrayBuffer for WASM bytes." << std::endl;
+//       JS_FreeValue(jsBridge.GetJsContext(), jsWasmArrayBuffer);
+//       jsBridge.Shutdown();
+//     }
+//
+//     JSContext* ctx = jsBridge.GetJsContext();
+//     JSValue globalObj = JS_GetGlobalObject(ctx);
+//
+//     JS_SetPropertyStr(ctx, globalObj, "wasmBytesForJs", JS_DupValue(ctx, jsWasmArrayBuffer));
+//     JS_FreeValue(ctx, globalObj);
+//
+//     const std::string js_code = R"javascript(
+//         try {
+//             console.log("[JS] Preparing to call cpp_runWasmAdd...");
+//             // wasmBytesForJs был установлен из C++
+//             if (typeof wasmBytesForJs === 'undefined') {
+//                 throw new Error("wasmBytesForJs is not defined in JS global scope!");
+//             }
+//
+//             let arg1 = 200;
+//             let arg2 = 33;
+//             console.log("[JS] Calling cpp_runWasmAdd(wasmBytesForJs, " + arg1 + ", " + arg2 + ")");
+//
+//             let sum = cpp_runWasmAdd(wasmBytesForJs, arg1, arg2); // arg1 и arg2 не используются WASM, но JS их передает
+//             console.log("[JS] Result from cpp_runWasmAdd:", sum);
+//
+//             sum; // Это значение будет результатом JS_Eval
+//         } catch (e) {
+//             console.log("[JS] Error during script execution:", e.toString());
+//             if (e.stack) {
+//                 console.log("[JS] Stack: " + e.stack);
+//             }
+//             -1; // Вернуть -1 в случае ошибки в JS
+//         }
+//     )javascript";
+//
+//     std::cout << std::endl << "[Main] Evaluating JS code..." << std::endl;
+//     JSValue result = jsBridge.ExecuteJsString(js_code, "mainWasmTestScript");
+//
+//     if (!JS_IsException(result)) {
+//         std::cout << "[Main] JS evaluation successful." << std::endl;
+//         int32_t c_result;
+//         // Используем контекст, полученный от jsBridge
+//         if (JS_ToInt32(ctx, &c_result, result) == 0) { // 0 - успех
+//             std::cout << "[Main] Result from JS (should be sum 200+33): " << c_result << std::endl;
+//         } else {
+//           std::string type_name = "unknown";
+//           int tag = JS_VALUE_GET_TAG(result); // Получаем тег значения
+//
+//           switch (tag) {
+//             case JS_TAG_UNDEFINED: type_name = "undefined"; break;
+//             case JS_TAG_NULL:      type_name = "null"; break;
+//             case JS_TAG_BOOL:      type_name = "boolean"; break;
+//             case JS_TAG_INT:       type_name = "integer"; break;
+//             case JS_TAG_FLOAT64:   type_name = "float64"; break;
+//             case JS_TAG_STRING:    type_name = "string"; break;
+//             case JS_TAG_OBJECT:    type_name = "object"; break;
+//             case JS_TAG_FUNCTION_BYTECODE: type_name = "function_bytecode"; break;
+//             case JS_TAG_MODULE:    type_name = "module"; break;
+//             case JS_TAG_BIG_INT:   type_name = "bigint"; break;
+//             case JS_TAG_SYMBOL:    type_name = "symbol"; break;
+//             default:
+//               if (JS_IsObject(result)) type_name = "object (other)";
+//               else type_name = "unknown_tag_" + std::to_string(tag);
+//             break;
+//           }
+//
+//           std::cout << "[Main] Could not convert JS result (type: " << type_name << ") to int." << std::endl;
+//         }
+//     } else {
+//         std::cerr << "[Main] JS evaluation resulted in an exception (already printed by HybridBridge)." << std::endl;
+//     }
+//
+//     JS_FreeValue(ctx, result);
+//     JS_FreeValue(ctx, jsWasmArrayBuffer);
+//
+//     jsBridge.Shutdown();
+
     mTicksCount = SDL_GetTicks();
 
     return true;

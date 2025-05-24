@@ -10,13 +10,15 @@ target_include_directories(ChimpyGL PUBLIC .)
 include(GenerateExportHeader)
 generate_export_header(ChimpyGL)
 
+include_directories(/usr/local/include)
+link_directories(/usr/local/lib)
+
 target_link_libraries(ChimpyGL PUBLIC
-        quickjs
         SDL2::SDL2
         SDL2_image::SDL2_image
-#        spdlog::spdlog
-        EnTT
-#        fmt::fmt
         box2d
         asio
+#        pthread
+#        dl
+        wasmtime
 )
