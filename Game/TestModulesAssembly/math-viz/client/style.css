@@ -1,9 +1,0 @@
-body {
-    font-family: sans-serif;
-    text-align: center;
-}
-
-#plotCanvas {
-border: 1px solid black;
-margin-top: 20px;
-}
