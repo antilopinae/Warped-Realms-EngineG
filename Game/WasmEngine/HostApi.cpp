@@ -1,10 +1,9 @@
 #include "HostApi.hpp"
+
 #include <iostream>
 
 namespace WasmHost {
 
-void LogMessage(const std::string& message) {
-  std::cout << message << std::endl;
-}
+void LogMessage(const std::string& message) { std::cout << message << std::endl; }
 
-} // namespace WasmHost
+}  // namespace WasmHost

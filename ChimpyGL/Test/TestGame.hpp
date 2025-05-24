@@ -1,33 +1,40 @@
 #pragma once
 
-#include "../Game.hpp"
-#include <cassert>
 #include <stdio.h>
+
+#include <cassert>
+
+#include "../Game.hpp"
 
 namespace EngineG::Test
 {
-  class TestGame {
+class TestGame
+{
   public:
-    TestGame(){
-      try{
-        StartGame();
-      } catch(...){
-        assert(false && "TestGame exception thrown");
-      }
-      printf("Game passed!\n");
+  TestGame()
+  {
+    try
+    {
+      StartGame();
     }
+    catch (...)
+    {
+      assert(false && "TestGame exception thrown");
+    }
+    printf("Game passed!\n");
+  }
 
   private:
-    void StartGame()
+  void StartGame()
+  {
+    Game game;
+    bool success = game.Initialize();
+    if (success)
     {
-      Game game;
-      bool success = game.Initialize();
-      if (success)
-      {
-        game.RunLoop();
-      }
-      game.Shutdown();
+      game.RunLoop();
     }
-  };
+    game.Shutdown();
+  }
+};
 
-}
+}    // namespace EngineG::Test

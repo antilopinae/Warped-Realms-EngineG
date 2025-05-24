@@ -5,4 +5,4 @@ namespace WasmHost {
 
 void LogMessage(const std::string& message);
 
-} // namespace WasmHost
+}  // namespace WasmHost

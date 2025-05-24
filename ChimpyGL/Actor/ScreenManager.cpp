@@ -1,13 +1,11 @@
-#include "Component/Game.hpp"
 #include "ScreenManager.hpp"
+
+#include "Component/Game.hpp"
 
 namespace EngineG
 {
 
-ScreenManager::ScreenManager(class Game* game): Actor(game)
-,mScreens()
-{
-}
+ScreenManager::ScreenManager(class Game* game) : Actor(game), mScreens() {}
 
 void ScreenManager::ChangeScreen(ScreenState newState)
 {
@@ -29,4 +27,4 @@ void ScreenManager::AddScreen(ScreenState state, class ScreenComponent<ScreenSta
   mScreens.push_back(screen);
 }
 
-}
+}    // namespace EngineG

@@ -1,6 +1,8 @@
-#include "Game.hpp"
 #include "ScreenComponent.hpp"
 
-namespace EngineG{
+#include "Game.hpp"
+
+namespace EngineG
+{
 
 }

@@ -1,20 +1,19 @@
 #include "Laser.hpp"
 
-#include "Component/SpriteComponent.hpp"
-#include "Component/MoveComponent.hpp"
-#include "Component/Game.hpp"
-#include "Component/CircleComponent.hpp"
 #include "Asteroid.hpp"
+#include "Component/CircleComponent.hpp"
+#include "Component/Game.hpp"
+#include "Component/MoveComponent.hpp"
+#include "Component/SpriteComponent.hpp"
 
-namespace EngineG{
+namespace EngineG
+{
 
-Laser::Laser(Game* game)
-        :Actor(game)
-        ,mDeathTimer(1.0f)
+Laser::Laser(Game* game) : Actor(game), mDeathTimer(1.0f)
 {
   // Create a sprite component
   SpriteComponent* sc = new SpriteComponent(this);
-  sc->SetTexture(game->GetTexture(ASSETS_DIR"Laser.png"));
+  sc->SetTexture(game->GetTexture(ASSETS_DIR "Laser.png"));
 
   // Create a move component, and set a forward speed
   MoveComponent* mc = new MoveComponent(this);
@@ -50,4 +49,4 @@ void Laser::UpdateActor(float deltaTime)
   }
 }
 
-}
+}    // namespace EngineG

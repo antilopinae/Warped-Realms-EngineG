@@ -3,22 +3,27 @@
 #include "Component.hpp"
 #include "Math.hpp"
 
-namespace EngineG{
+namespace EngineG
+{
 
 class CircleComponent : public Component
 {
-public:
-    CircleComponent(class Actor* owner);
+  public:
+  CircleComponent(class Actor* owner);
 
-    void SetRadius(float radius) { mRadius = radius; }
-    float GetRadius() const;
+  void SetRadius(float radius)
+  {
+    mRadius = radius;
+  }
+  float GetRadius() const;
 
-    const Vector2& GetCenter() const;
-private:
-    float mRadius;
+  const Vector2& GetCenter() const;
+
+  private:
+  float mRadius;
 };
 
 bool Intersect(const CircleComponent& a, const CircleComponent& b);
 
 
-}
+}    // namespace EngineG

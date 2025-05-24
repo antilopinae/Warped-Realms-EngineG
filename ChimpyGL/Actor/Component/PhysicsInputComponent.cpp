@@ -2,16 +2,16 @@
 
 #include "Actor.hpp"
 
-namespace EngineG{
-
-PhysicsInputComponent::PhysicsInputComponent(class Actor* owner)
-:PhysicsMoveComponent(owner)
-,mForwardKey(0)
-,mBackKey(0)
-,mClockwiseKey(0)
-,mCounterClockwiseKey(0)
+namespace EngineG
 {
 
+PhysicsInputComponent::PhysicsInputComponent(class Actor* owner)
+    : PhysicsMoveComponent(owner),
+      mForwardKey(0),
+      mBackKey(0),
+      mClockwiseKey(0),
+      mCounterClockwiseKey(0)
+{
 }
 
 void PhysicsInputComponent::ProcessInput(const uint8_t* keyState)
@@ -41,4 +41,4 @@ void PhysicsInputComponent::ProcessInput(const uint8_t* keyState)
   SetAngularSpeed(angularSpeed);
 }
 
-}
+}    // namespace EngineG

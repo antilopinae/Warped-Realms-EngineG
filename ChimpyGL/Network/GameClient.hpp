@@ -1,19 +1,21 @@
 #pragma once
 
+#include "GameMsgTypes.hpp"
 #include "NetClient.hpp"
 #include "NetMessage.hpp"
-#include "GameMsgTypes.hpp"
 
-namespace EngineG::Network {
-
-class GameClient: public ClientInterface<GameMsgTypes>
+namespace EngineG::Network
 {
-public:
+
+class GameClient : public ClientInterface<GameMsgTypes>
+{
+  public:
   GameClient() = default;
-public:
+
+  public:
   void PingServer();
   void SendInputUpdate(const PlayerInput& currentInput);
   void RequestWorldState();
 };
 
-}
+}    // namespace EngineG::Network

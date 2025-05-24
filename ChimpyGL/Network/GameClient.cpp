@@ -1,15 +1,18 @@
 #include "GameClient.hpp"
 
-namespace EngineG::Network {
+namespace EngineG::Network
+{
 
-void GameClient::PingServer() {
+void GameClient::PingServer()
+{
   Message<GameMsgTypes> msg = CreateMsgClientPing();
   Send(msg);
 }
 
-void GameClient::SendInputUpdate(const PlayerInput& currentInput) {
+void GameClient::SendInputUpdate(const PlayerInput& currentInput)
+{
   Message<GameMsgTypes> msg = CreateMsgClientInputUpdate(currentInput);
   Send(msg);
 }
 
-}
+}    // namespace EngineG::Network

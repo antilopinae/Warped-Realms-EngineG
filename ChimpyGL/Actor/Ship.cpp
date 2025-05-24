@@ -1,23 +1,19 @@
 #include "Ship.hpp"
 
-#include "Component/AnimSpriteComponent.hpp"
-#include "Component/Game.hpp"
-#include "Component/InputComponent.hpp"
-#include "Component/CircleComponent.hpp"
-#include "Component/PhysicsInputComponent.hpp"
-#include "Laser.hpp"
-#include "Asteroid.hpp"
-
 #include <iostream>
 
-namespace EngineG{
+#include "Asteroid.hpp"
+#include "Component/AnimSpriteComponent.hpp"
+#include "Component/CircleComponent.hpp"
+#include "Component/Game.hpp"
+#include "Component/InputComponent.hpp"
+#include "Component/PhysicsInputComponent.hpp"
+#include "Laser.hpp"
 
-Ship::Ship(class Game* game)
-:Actor(game)
-,mRightSpeed(0.0f)
-,mDownSpeed(0.0f)
-,mLaserCooldown(0.0f)
-,isVisible(true)
+namespace EngineG
+{
+
+Ship::Ship(class Game* game) : Actor(game), mRightSpeed(0.0f), mDownSpeed(0.0f), mLaserCooldown(0.0f), isVisible(true)
 {
   // Create an animated sprite component
   mAnimSprite = new AnimSpriteComponent(this);
@@ -28,14 +24,9 @@ Ship::Ship(class Game* game)
       game->GetTexture("Ship03.png"),
       game->GetTexture("Ship04.png"),
 #endif
-    game->GetTexture(ASSETS_DIR"Ship.png"),
-    game->GetTexture(ASSETS_DIR"ShipWithThrust.png")
-  };
+      game->GetTexture(ASSETS_DIR "Ship.png"), game->GetTexture(ASSETS_DIR "ShipWithThrust.png")};
   mAnimSprite->SetAnimTextures(anims);
-  mAnimSprite->SetAnimRanges({
-    AnimSpriteComponent::Animation(1,1, false),
-    AnimSpriteComponent::Animation(2,2, false)
-  });
+  mAnimSprite->SetAnimRanges({AnimSpriteComponent::Animation(1, 1, false), AnimSpriteComponent::Animation(2, 2, false)});
   mAnimSprite->SetNumAnim(1);
 
   // Create an input component and set keys/speed
@@ -100,13 +91,13 @@ void Ship::ActorInput(const uint8_t* keyState)
 {
   if (keyState[SDL_SCANCODE_SPACE] && mLaserCooldown <= 0.0f && mDisappearCooldown <= 0.0f)
   {
-      // Create a laser and set its position/rotation to mine
-      Laser* laser = new Laser(GetGame());
-      laser->SetPosition(GetPosition());
-      laser->SetRotation(GetRotation());
+    // Create a laser and set its position/rotation to mine
+    Laser* laser = new Laser(GetGame());
+    laser->SetPosition(GetPosition());
+    laser->SetRotation(GetRotation());
 
-      // Reset laser cooldown (half second)
-      mLaserCooldown = 0.5f;
+    // Reset laser cooldown (half second)
+    mLaserCooldown = 0.5f;
   }
 
   if (mDisappearCooldown <= 0.0f)
@@ -130,11 +121,8 @@ void Ship::ActorInput(const uint8_t* keyState)
     }
   }
 
-// #if 0
-  if (
-  !Math::NearZero(mInputComponent->GetForwardSpeed()) ||
-  !Math::NearZero(mInputComponent->GetAngularSpeed())
-  )
+  // #if 0
+  if (!Math::NearZero(mInputComponent->GetForwardSpeed()) || !Math::NearZero(mInputComponent->GetAngularSpeed()))
   {
     if (mAnimSprite->GetNumAnim() == 0)
     {
@@ -150,7 +138,7 @@ void Ship::ActorInput(const uint8_t* keyState)
       mAnimSprite->SetNumAnim(0);
     }
   }
-// #endif
+  // #endif
 }
 
 
@@ -181,4 +169,4 @@ void Ship::ProcessKeyboard(const uint8_t* state)
 #endif
 
 
-}
+}    // namespace EngineG

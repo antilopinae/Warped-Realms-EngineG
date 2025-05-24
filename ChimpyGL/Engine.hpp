@@ -6,14 +6,14 @@
 namespace PhysicsEngine
 {
 
-struct Engine{
-    std::atomic<bool> running{false};
-    double x = 0.0, y = 0.0, z = 0.0;
-    int tick = 0;
+struct Engine
+{
+  std::atomic<bool> running{false};
+  double x = 0.0, y = 0.0, z = 0.0;
+  int tick = 0;
 
-    std::mutex positionMutex;
+  std::mutex positionMutex;
 };
 
 
-}
-
+}    // namespace PhysicsEngine

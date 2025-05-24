@@ -1,33 +1,42 @@
 #pragma once
 
-#include "Actor.hpp"
 #include <cstdint>
 
-namespace EngineG{
+#include "Actor.hpp"
+
+namespace EngineG
+{
 
 class Ship : public Actor
 {
-public:
-    Ship(class Game* game);
-    void UpdateActor(float deltaTime) override;
-    void ActorInput(const uint8_t* keyState) override;
+  public:
+  Ship(class Game* game);
+  void UpdateActor(float deltaTime) override;
+  void ActorInput(const uint8_t* keyState) override;
 
-    // void ProcessKeyboard(const uint8_t* state);
-    float GetRightSpeed() const { return mRightSpeed; }
-    float GetDownSpeed() const { return mDownSpeed; }
-private:
-    bool isVisible;
+  // void ProcessKeyboard(const uint8_t* state);
+  float GetRightSpeed() const
+  {
+    return mRightSpeed;
+  }
+  float GetDownSpeed() const
+  {
+    return mDownSpeed;
+  }
 
-    float mRightSpeed;
-    float mDownSpeed;
+  private:
+  bool isVisible;
 
-    float mLaserCooldown;
-    float mDisappearCooldown;
+  float mRightSpeed;
+  float mDownSpeed;
 
-    class CircleComponent* mCircle;
-    class InputComponent* mInputComponent;
-    // class PhysicsInputComponent* mInputComponent;
-    class AnimSpriteComponent* mAnimSprite;
+  float mLaserCooldown;
+  float mDisappearCooldown;
+
+  class CircleComponent* mCircle;
+  class InputComponent* mInputComponent;
+  // class PhysicsInputComponent* mInputComponent;
+  class AnimSpriteComponent* mAnimSprite;
 };
 
-}
+}    // namespace EngineG

@@ -4,14 +4,15 @@
 
 #include "Math.hpp"
 
-namespace EngineG{
+namespace EngineG
+{
 
 AnimSpriteComponent::AnimSpriteComponent(Actor* owner, int drawOrder)
-:SpriteComponent(owner, drawOrder)
-, mState(ESingle)
-, mCurrFrame(0.0f)
-, mAnimFPS(24.0f)
-, mCurrAnim(0)
+    : SpriteComponent(owner, drawOrder),
+      mState(ESingle),
+      mCurrFrame(0.0f),
+      mAnimFPS(24.0f),
+      mCurrAnim(0)
 {
 }
 
@@ -94,4 +95,4 @@ void AnimSpriteComponent::SetNumAnim(int nextAnimation)
   }
 }
 
-}
+}    // namespace EngineG

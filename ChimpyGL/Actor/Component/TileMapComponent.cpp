@@ -1,15 +1,14 @@
 #include "TileMapComponent.hpp"
 
+#include <iostream>
+
 #include "Actor.hpp"
 #include "Math.hpp"
-#include <iostream>
 
 namespace EngineG
 {
 
-TileMapComponent::TileMapComponent(Actor* owner, int drawOrder): SpriteComponent(owner, drawOrder)
-{
-}
+TileMapComponent::TileMapComponent(Actor* owner, int drawOrder) : SpriteComponent(owner, drawOrder) {}
 
 void TileMapComponent::Draw(SDL_Renderer* renderer)
 {
@@ -28,14 +27,14 @@ void TileMapComponent::Draw(SDL_Renderer* renderer)
 
     Vector2 r;
     // Center the rectangle around the position of the owner
-    r.x = static_cast<int>(mOwner->GetPosition().x -  (dst.w * mTileRules[0].size())/2);
-    r.y = static_cast<int>(mOwner->GetPosition().y - (dst.h * mTileRules.size())/2);
+    r.x = static_cast<int>(mOwner->GetPosition().x - (dst.w * mTileRules[0].size()) / 2);
+    r.y = static_cast<int>(mOwner->GetPosition().y - (dst.h * mTileRules.size()) / 2);
 
     int rowIndex = 0;
-    for (const auto& rowTiles: mTileRules)
+    for (const auto& rowTiles : mTileRules)
     {
       int colIndex = 0;
-      for (const auto tile: rowTiles)
+      for (const auto tile : rowTiles)
       {
         if (tile == -1)
         {
@@ -55,13 +54,12 @@ void TileMapComponent::Draw(SDL_Renderer* renderer)
         dst.y = static_cast<int>(r.y + (rowIndex * dst.h));
 
         // Draw (have to convert angle from radians to degrees, and clockwise to counter)
-        SDL_RenderCopyEx(renderer,
-                            mTexture,
-                            &cell, // Part of texture to draw (null if whole)
-                            &dst, // Rectangle to draw onto the target
-                            -Math::ToDegrees(mOwner->GetRotation()), // Rotation angle (in degrees, clockwise)
-                            nullptr,  // Point to rotate about (nullptr for center)
-                            isReversed?SDL_FLIP_HORIZONTAL:SDL_FLIP_NONE);
+        SDL_RenderCopyEx(renderer, mTexture,
+            &cell,                                      // Part of texture to draw (null if whole)
+            &dst,                                       // Rectangle to draw onto the target
+            -Math::ToDegrees(mOwner->GetRotation()),    // Rotation angle (in degrees, clockwise)
+            nullptr,                                    // Point to rotate about (nullptr for center)
+            isReversed ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
         ++colIndex;
       }
       ++rowIndex;
@@ -69,10 +67,7 @@ void TileMapComponent::Draw(SDL_Renderer* renderer)
   }
 }
 
-void TileMapComponent::SetTileMapRule()
-{
-
-}
+void TileMapComponent::SetTileMapRule() {}
 
 
 void TileMapComponent::LoadTileMapFromCSV(const std::vector<std::string>& csv)
@@ -100,4 +95,4 @@ void TileMapComponent::LoadTileMapFromCSV(const std::vector<std::string>& csv)
 
 
 
-}
+}    // namespace EngineG

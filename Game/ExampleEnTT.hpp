@@ -2,7 +2,7 @@
 
 #include <entt/entt.hpp>
 
-namespace Examples{
+namespace Examples {
 
 struct position {
   float x;
@@ -19,10 +19,7 @@ void update(entt::registry &registry) {
 
   // view.each([](const auto &pos, auto &vel) { std::cout << pos.x << ", " << pos.y << std::endl; });
 
-  view.each([](const auto entity, const auto &pos, auto &vel)
-  {
-    std::cout << pos.x << ", " << pos.y << std::endl;
-  });
+  view.each([](const auto entity, const auto &pos, auto &vel) { std::cout << pos.x << ", " << pos.y << std::endl; });
 
   // for(auto [entity, pos, vel]: view.each()) {}
 
@@ -34,13 +31,15 @@ void update(entt::registry &registry) {
 void startExampleEnTT() {
   entt::registry registry;
 
-  for(auto i = 0u; i < 10u; ++i) {
+  for (auto i = 0u; i < 10u; ++i) {
     const auto entity = registry.create();
     registry.emplace<position>(entity, i * 1.f, i * 1.f);
-    if(i % 2 == 0) { registry.emplace<velocity>(entity, i * .1f, i * .1f); }
+    if (i % 2 == 0) {
+      registry.emplace<velocity>(entity, i * .1f, i * .1f);
+    }
   }
 
   update(registry);
 }
 
-}
+}  // namespace Examples

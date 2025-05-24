@@ -1,5 +1,3 @@
 #include <emscripten.h>
 
-int Increment(int value) {
-    return (value + 1);
-}
+int Increment(int value) { return (value + 1); }

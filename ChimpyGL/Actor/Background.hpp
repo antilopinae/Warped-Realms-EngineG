@@ -2,15 +2,16 @@
 
 #include "Actor.hpp"
 
-namespace EngineG{
-
-class Background: public Actor
+namespace EngineG
 {
-public:
+
+class Background : public Actor
+{
+  public:
   Background(class Game* game);
 
-private:
+  private:
   std::vector<class TileMapComponent*> mLayers;
 };
 
-}
+}    // namespace EngineG

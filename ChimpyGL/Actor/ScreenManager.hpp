@@ -3,9 +3,11 @@
 #include "Actor.hpp"
 #include "Component/ScreenComponent.hpp"
 
-namespace EngineG{
+namespace EngineG
+{
 
-enum class ScreenState {
+enum class ScreenState
+{
   NONE,
   MAIN_MENU,
   LOBBY_HOST,
@@ -13,9 +15,9 @@ enum class ScreenState {
   GAME,
 };
 
-class ScreenManager: public Actor
+class ScreenManager : public Actor
 {
-public:
+  public:
   ScreenManager(class Game* game);
   ~ScreenManager() = default;
 
@@ -23,10 +25,10 @@ public:
   void ChangeScreen(ScreenState newState);
   void RemoveScreen(ScreenState state) = delete;
 
-protected:
+  protected:
   std::vector<class ScreenComponent<ScreenState>*> mScreens;
   ScreenComponent<ScreenState>* mCurScreen = nullptr;
   ScreenState mCurState = ScreenState::NONE;
 };
 
-}
+}    // namespace EngineG
