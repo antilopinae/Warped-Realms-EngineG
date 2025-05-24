@@ -1,434 +1,383 @@
 #include "WasmComponent.hpp"
 #include "GameEngine.hpp"
 #include "HostApi.hpp"
+
 #include <vector>
 #include <stdexcept>
-#include <cstring> // Для memcpy
+#include <cstring>
+#include <sstream>
 
 namespace WasmHost {
 
-static wasm_trap_t* HostLogWasmImpl(void* env, const wasm_val_vec_t* args, wasm_val_vec_t* /*results*/) {
-    WasmComponent* component = static_cast<WasmComponent*>(env);
-    if (!component || !component->GetOwnerEngine()) {
-         return wasmtime_trap_new("HostLogWasmImpl: env or owner_engine is null", strlen("..."));
-    }
-    if (args->size < 2 || args->data[0].kind != WASM_I32 || args->data[1].kind != WASM_I32) {
-        return wasmtime_trap_new("HostLogWasmImpl: invalid arguments", strlen("..."));
-    }
-    uint32_t ptr = static_cast<uint32_t>(args->data[0].of.i32);
-    uint32_t len = static_cast<uint32_t>(args->data[1].of.i32);
-
-    // auto msg_content = std::string(reinterpret_cast<const char*>(component->GetGuestMemoryDataPtr()+ptr), len);
-    std::string msg = component->ReadStringFromGuestMemory(ptr, len);
-
-    LogMessage("WASM " + msg);
-
-    return nullptr;
-}
-
-static wasm_trap_t* HostStubNotifyMemoryGrowthImpl(void* /*env*/, const wasm_val_vec_t* /*args*/, wasm_val_vec_t* /*results*/) {
-  return nullptr;
-}
-
-WasmComponent::WasmComponent(std::string componentId, std::string wasmPath, std::string entityName, std::string slotName,
-                             GameEngine* ownerEngine, wasm_engine_t* engine)
-    : mId(std::move(componentId)),
-      mPath(std::move(wasmPath)),
-      mEntityName(std::move(entityName)),
-      mSlotName(std::move(slotName)),
-      mOwnerEngine(ownerEngine) {
-    if (!engine) {
-        throw std::runtime_error("WasmComponent: Engine cannot be null.");
-    }
-    mStore = wasm_store_new(engine);
-    if (!mStore) {
-        throw std::runtime_error("WasmComponent: Failed to create wasm_store_t for " + mId);
-    }
+WasmComponent::WasmComponent(std::string componentId, std::string wasmPath,
+std::string entityName, std::string slotName,
+GameEngine* ownerEngine, wasmtime::Engine& engine_ref)
+: mId(std::move(componentId)),
+mPath(std::move(wasmPath)),
+mOwnerEngine(ownerEngine),
+mEngineRef(engine_ref) {
+  (void)entityName;
+  (void)slotName;
+  if (!mOwnerEngine) {
+    throw std::runtime_error("WasmComponent [" + mId + "]: OwnerGameEngine cannot be null.");
+  }
+  LogMessage("WasmComponent [" + mId + "]: Constructed. Path: " + mPath);
 }
 
 WasmComponent::~WasmComponent() {
-    if (mAllocateFunc) wasm_func_delete(mAllocateFunc);
-    if (mDeallocateFunc) wasm_func_delete(mDeallocateFunc);
-    if (mInitializeFuncFromWasm) wasm_func_delete(mInitializeFuncFromWasm);
-    if (mUpdateFuncFromWasm) wasm_func_delete(mUpdateFuncFromWasm);
-    if (mOnMessageFuncFromWasm) wasm_func_delete(mOnMessageFuncFromWasm);
-    if (mTerminateFuncFromWasm) wasm_func_delete(mTerminateFuncFromWasm);
-
-    if (mInstance) wasm_instance_delete(mInstance);
-    if (mModule) wasm_module_delete(mModule);
-    if (mStore) wasm_store_delete(mStore);
+  LogMessage("WasmComponent [" + mId + "]: Destructor called.");
+  if (mIsInitialized) {
+    try {
+      Terminate();
+    } catch (const wasmtime::Error& e) {
+      if (mOwnerEngine) mOwnerEngine->LogWasmException("WasmComponent Dtor - Terminate", e, mId);
+    } catch (const wasmtime::Trap& t) {
+      if (mOwnerEngine) mOwnerEngine->LogWasmException("WasmComponent Dtor - Terminate", t, mId);
+    } catch (const std::exception& e) {
+      if (mOwnerEngine) mOwnerEngine->LogWasmException("WasmComponent Dtor - Terminate", e, mId);
+    }
+  }
 }
 
 bool WasmComponent::Initialize() {
-    if (mIsInitialized) return true;
-
-    if (!LoadModuleAndInstantiate(nullptr)) {
-        LogMessage("WasmComponent " + mId + " ERROR: Failed to load and instantiate module.");
-        return false;
+    if (mIsInitialized) {
+        LogMessage("WasmComponent [" + mId + "]: Already initialized.");
+        return true;
     }
+    LogMessage("WasmComponent [" + mId + "]: Initializing...");
 
-    if (mInitializeFuncFromWasm) {
-        if (!CallVoidExport(mInitializeFuncFromWasm, "WASM initialize")) {
-            LogMessage("WasmComponent " + mId + " ERROR: Execution of WASM initialize function failed.");
-            if(mInstance) wasm_instance_delete(mInstance); mInstance = nullptr;
-            if(mModule) wasm_module_delete(mModule); mModule = nullptr;
-            return false;
-        }
+  try {
+    mStoreOpt.emplace(mEngineRef); // Create Store with just the Engine
+
+    // Set host data using std::any
+    // This assumes Store::Context has set_data(std::any) or similar
+    mStoreOpt->context().set_data(std::any(this)); // Store WasmComponent* in std::any
+
+    auto fuel_res = mStoreOpt->context().set_fuel(100'000'000);
+    if (!fuel_res) {
+      if (mOwnerEngine) mOwnerEngine->LogWasmException("Initialize set_fuel", fuel_res.err(), mId);
     }
-    mIsInitialized = true;
-    LogMessage("WasmComponent " + mId + " initialized successfully (host and WASM).");
-    return true;
-}
+    mStoreOpt->context().set_epoch_deadline(1);
 
-bool WasmComponent::LoadModuleAndInstantiate(wasm_engine_t* /*engine_ptr_ignored*/) {
-    if (!mOwnerEngine->ReadFileToVector(mPath, mWasmBinaryData)) {
-        return false;
-    }
-
-    wasm_byte_vec_t wasm_byte_vec;
-    wasm_byte_vec_new(&wasm_byte_vec, mWasmBinaryData.size(), mWasmBinaryData.data());
-
-    mModule = wasm_module_new(mStore, &wasm_byte_vec);
-    wasm_byte_vec_delete(&wasm_byte_vec);
-
-    if (!mModule) {
-        LogMessage("WasmComponent " + mId + " ERROR: Failed to compile WASM module.");
-        return false;
-    }
-
-    if (!LinkImports()) {
-        wasm_module_delete(mModule); mModule = nullptr;
-        return false;
-    }
-
-    wasm_extern_vec_t exports_vec;
-    wasm_instance_exports(mInstance, &exports_vec);
-
-    wasm_exporttype_vec_t module_export_types;
-    wasm_module_exports(mModule, &module_export_types);
-
-    bool memory_found = false;
-    for (size_t i = 0; i < exports_vec.size && i < module_export_types.size; ++i) {
-        wasm_extern_t* ext = exports_vec.data[i];
-        const wasm_name_t* export_name_vec = wasm_exporttype_name(module_export_types.data[i]);
-        std::string export_name(export_name_vec->data, export_name_vec->size);
-
-        if (wasm_extern_kind(ext) == WASM_EXTERN_FUNC) {
-            wasm_func_t* func = wasm_extern_as_func(ext);
-            if (export_name == "allocate") mAllocateFunc = wasm_func_copy(func);
-            else if (export_name == "deallocate") mDeallocateFunc = wasm_func_copy(func);
-            else if (export_name == "initialize") mInitializeFuncFromWasm = wasm_func_copy(func);
-            else if (export_name == "update") mUpdateFuncFromWasm = wasm_func_copy(func);
-            else if (export_name == "onMessage") mOnMessageFuncFromWasm = wasm_func_copy(func);
-            else if (export_name == "terminate") mTerminateFuncFromWasm = wasm_func_copy(func);
-        } else if (wasm_extern_kind(ext) == WASM_EXTERN_MEMORY && export_name == "memory") {
-            mMemory = wasm_extern_as_memory(ext);
-            memory_found = true;
-        }
-    }
-    wasm_exporttype_vec_delete(&module_export_types);
-    wasm_extern_vec_delete(&exports_vec);
-
-    if (!memory_found) {
-        LogMessage("WasmComponent " + mId + " ERROR: Exported 'memory' not found.");
-        if(mInstance) wasm_instance_delete(mInstance); mInstance = nullptr;
-        if(mModule) wasm_module_delete(mModule); mModule = nullptr;
-        return false;
-    }
-    return true;
-}
-
-bool WasmComponent::LinkImports() {
-    if (!mStore || !mModule) {
-        LogMessage("WasmComponent " + mId + " ERROR: Store or Module is null.");
-        return false;
-    }
-
-    wasm_importtype_vec_t needed_imports_types;
-    wasm_module_imports(mModule, &needed_imports_types);
-
-    std::vector<wasm_extern_t*> resolved_extern_imports(needed_imports_types.size);
-    bool all_resolved = true;
-
-    wasm_func_t* host_log_func = nullptr;
-    wasm_func_t* host_notify_func = nullptr;
-
-    bool needs_log = false;
-    bool needs_notify = false;
-
-    for (size_t i = 0; i < needed_imports_types.size; ++i) {
-        const wasm_name_t* module_name = wasm_importtype_module(needed_imports_types.data[i]);
-        const wasm_name_t* field_name = wasm_importtype_name(needed_imports_types.data[i]);
-
-        if (!module_name || !field_name || !module_name->data || !field_name->data) {
-            LogMessage("WasmComponent " + mId + " ERROR: Null import name.");
-            all_resolved = false;
-            break;
-        }
-
-        std::string mod(module_name->data, module_name->size);
-        std::string field(field_name->data, field_name->size);
-
-        if (mod == "env") {
-            if (field == "engine_log_wasm") needs_log = true;
-            else if (field == "emscripten_notify_memory_growth") needs_notify = true;
-        }
-    }
-
-    if (needs_log) {
-        wasm_valtype_t* params[] = { wasm_valtype_new_i32(), wasm_valtype_new_i32() };
-        wasm_valtype_vec_t param_vec;
-        wasm_valtype_vec_new(&param_vec, 2, params);
-        wasm_valtype_vec_t result_vec;
-        wasm_valtype_vec_new_empty(&result_vec);
-
-        wasm_functype_t* func_type = wasm_functype_new(&param_vec, &result_vec);
-        wasm_valtype_vec_delete(&param_vec);
-        wasm_valtype_vec_delete(&result_vec);
-
-        if (func_type) {
-            host_log_func = wasm_func_new_with_env(mStore, func_type, HostLogWasmImpl, this, nullptr);
-            wasm_functype_delete(func_type);
-
-            if (!host_log_func) {
-                LogMessage("WasmComponent " + mId + " ERROR: Failed to create engine_log_wasm func.");
-                all_resolved = false;
-            }
-        } else {
-            LogMessage("WasmComponent " + mId + " ERROR: Failed to create functype for engine_log_wasm.");
-            all_resolved = false;
-        }
-    }
-
-    if (needs_notify && all_resolved) {
-        wasm_valtype_t* params[] = { wasm_valtype_new_i32() };
-        wasm_valtype_vec_t param_vec;
-        wasm_valtype_vec_new(&param_vec, 1, params);
-        wasm_valtype_vec_t result_vec;
-        wasm_valtype_vec_new_empty(&result_vec);
-
-        wasm_functype_t* func_type = wasm_functype_new(&param_vec, &result_vec);
-        wasm_valtype_vec_delete(&param_vec);
-        wasm_valtype_vec_delete(&result_vec);
-
-        if (func_type) {
-            host_notify_func = wasm_func_new_with_env(mStore, func_type, HostStubNotifyMemoryGrowthImpl, nullptr, nullptr);
-            wasm_functype_delete(func_type);
-            if (!host_notify_func) {
-                LogMessage("WasmComponent " + mId + " WARNING: emscripten_notify_memory_growth not created.");
-            }
-        } else {
-            LogMessage("WasmComponent " + mId + " ERROR: Failed to create functype for emscripten_notify_memory_growth.");
-        }
-    }
-
-    if (all_resolved) {
-        for (size_t i = 0; i < needed_imports_types.size; ++i) {
-            const wasm_name_t* module_name = wasm_importtype_module(needed_imports_types.data[i]);
-            const wasm_name_t* field_name = wasm_importtype_name(needed_imports_types.data[i]);
-            std::string mod(module_name->data, module_name->size);
-            std::string field(field_name->data, field_name->size);
-
-            resolved_extern_imports[i] = nullptr;
-
-            if (mod == "env") {
-                if (field == "engine_log_wasm" && host_log_func) {
-                    resolved_extern_imports[i] = wasm_func_as_extern(host_log_func);
-                } else if (field == "emscripten_notify_memory_growth" && host_notify_func) {
-                    resolved_extern_imports[i] = wasm_func_as_extern(host_notify_func);
-                } else {
-                    LogMessage("WasmComponent " + mId + " ERROR: Unresolved import: env." + field);
-                    all_resolved = false;
-                    break;
-                }
-            } else {
-                LogMessage("WasmComponent " + mId + " ERROR: Unknown import module: " + mod);
-                all_resolved = false;
-                break;
-            }
-        }
-    }
-
-    wasm_importtype_vec_delete(&needed_imports_types);
-
-    if (!all_resolved) {
-        if (host_log_func) wasm_func_delete(host_log_func);
-        if (host_notify_func) wasm_func_delete(host_notify_func);
-        LogMessage("WasmComponent " + mId + " ERROR: Failed to resolve imports.");
-        return false;
-    }
-
-    wasm_extern_vec_t imports_vec = { resolved_extern_imports.size(), resolved_extern_imports.data() };
-    wasm_trap_t* trap = nullptr;
-    mInstance = wasm_instance_new(mStore, mModule, &imports_vec, &trap);
-
-    if (host_log_func) wasm_func_delete(host_log_func);
-    if (host_notify_func) wasm_func_delete(host_notify_func);
-
-    if (trap) {
-        mOwnerEngine->HandleWasmTrap("LinkImports (instantiation)", trap, mId);
-        return false;
-    }
-
-    if (!mInstance) {
-        LogMessage("WasmComponent " + mId + " ERROR: Instantiation failed (null instance, no trap).");
-        return false;
-    }
-
-    return true;
-}
-
-
-bool WasmComponent::CallVoidExport(wasm_func_t* func, const char* funcNameForLog) {
-    if (!func) return true;
-    if (!mIsInitialized && func != mInitializeFuncFromWasm) {
-         LogMessage("WasmComponent " + mId + " WARN: Attempt to call " + funcNameForLog + " on uninitialized component.");
-    }
-
-    wasm_val_vec_t args;
-    wasm_val_vec_new_empty(&args);
-    wasm_val_vec_t results;
-    wasm_val_vec_new_empty(&results);
-    wasm_trap_t* trap = wasm_func_call(func, &args, &results);
-    wasm_val_vec_delete(&results);
-    wasm_val_vec_delete(&args);
-
-    if (trap) { mOwnerEngine->HandleWasmTrap(funcNameForLog, trap, mId); return false; }
-    return true;
-}
-
-bool WasmComponent::Update() {
-    if (!mIsInitialized) return true;
-
-    if (!mUpdateFuncFromWasm || !mStore || !mInstance) {
-      LogMessage("WasmComponent " + mId + " FATAL ERROR: params is NULL before CallVoidExport!");
+    if (!LoadAndInstantiateModule()) {
+      mStoreOpt.reset();
       return false;
     }
-    return CallVoidExport(mUpdateFuncFromWasm, "WASM update");
+
+    if (mInitializeFuncOpt) {
+      LogMessage("WasmComponent [" + mId + "]: Calling WASM 'initialize' function.");
+      mInitializeFuncOpt->call(mStoreOpt->context(), {}).unwrap();
+    } else {
+      LogMessage("WasmComponent [" + mId + "]: No WASM 'initialize' function found/exported.");
+    }
+
+  } catch (const wasmtime::Error& e) {
+    if (mOwnerEngine) mOwnerEngine->LogWasmException("WASM Initialize (Error)", e, mId);
+    mStoreOpt.reset(); mInstanceOpt.reset(); mMemoryOpt.reset();
+    return false;
+  } catch (const wasmtime::Trap& t) {
+    if (mOwnerEngine) mOwnerEngine->LogWasmException("WASM Initialize (Trap)", t, mId);
+    mStoreOpt.reset(); mInstanceOpt.reset(); mMemoryOpt.reset();
+    return false;
+  } catch (const std::exception& e) { // Catches std::bad_any_cast if set_data fails, or std::runtime_error
+    if (mOwnerEngine) mOwnerEngine->LogWasmException("WASM Initialize (StdExc)", e, mId);
+    mStoreOpt.reset(); mInstanceOpt.reset(); mMemoryOpt.reset();
+    return false;
+  }
+
+  mIsInitialized = true;
+  LogMessage("WasmComponent [" + mId + "]: Initialization successful.");
+  return true;
 }
 
-bool WasmComponent::DeliverMessage(const std::string& fromId, const std::string& message) {
-    if (!mIsInitialized || !mOnMessageFuncFromWasm) return true;
+bool WasmComponent::LoadAndInstantiateModule() {
+  LogMessage("WasmComponent [" + mId + "]: Loading WASM binary from " + mPath);
+  if (!mOwnerEngine->ReadFileToVector(mPath, mWasmBinaryData)) {
+    LogMessage("WasmComponent [" + mId + "] ERROR: Failed to read WASM file: " + mPath);
+    // No need to call LogWasmException here as ReadFileToVector should log its own errors.
+    return false;
+  }
+  if (mWasmBinaryData.empty()) {
+    LogMessage("WasmComponent [" + mId + "] ERROR: WASM file is empty: " + mPath);
+    return false;
+  }
 
-    uint32_t from_ptr = 0;
-    uint32_t from_len = 0;
-    if (!fromId.empty()) {
-        from_ptr = AllocateInGuest(fromId.length());
-        if (from_ptr == 0 && fromId.length() > 0) { return false; }
-        WriteStringToGuestMemory(from_ptr, fromId);
-        from_len = fromId.length();
+  LogMessage("WasmComponent [" + mId + "]: Compiling WASM module...");
+  wasmtime::Result<wasmtime::Module> module_res = wasmtime::Module::compile(mEngineRef, mWasmBinaryData);
+  if (!module_res) {
+      LogMessage("WasmComponent [" + mId + "] ERROR: Failed to compile WASM module: " + module_res.err().message());
+      // LogWasmException expects a std::exception or wasmtime::Error/Trap.
+      // wasmtime::Error is suitable here.
+      if (mOwnerEngine) mOwnerEngine->LogWasmException("LoadAndInstantiateModule - Module::compile", module_res.err(), mId);
+      return false;
+  }
+  wasmtime::Module module = std::move(module_res.unwrap()); // module_res.unwrap() or *module_res
+
+  LogMessage("WasmComponent [" + mId + "]: Instantiating module...");
+  // The instantiate call can also throw, so it's good it's in a try-catch in Initialize,
+  // or handle its Result here too.
+  // For consistency with unwrap() style previously used, and assuming Initialize's try-catch block handles it:
+  mInstanceOpt.emplace(mOwnerEngine->GetLinker().instantiate(mStoreOpt->context(), module).unwrap());
+  // A safer way if not relying on outer try-catch for this specific step:
+  /*
+  auto instance_res = mOwnerEngine->GetLinker().instantiate(mStoreOpt->context(), module);
+  if (!instance_res) {
+      LogMessage("WasmComponent [" + mId + "] ERROR: Failed to instantiate WASM module: " + instance_res.err().message());
+      if (mOwnerEngine) mOwnerEngine->LogWasmException("LoadAndInstantiateModule - Linker::instantiate", instance_res.err(), mId);
+      return false;
+  }
+  mInstanceOpt.emplace(std::move(*instance_res));
+  */
+
+  if (!ExtractExports()) {
+    mInstanceOpt.reset(); // Ensure instance is cleared if exports fail
+    return false;
+  }
+  return true;
+}
+
+bool WasmComponent::ExtractExports() {
+    if (!mInstanceOpt || !mStoreOpt) {
+        LogMessage("WasmComponent [" + mId + "] ERROR (ExtractExports): Instance or Store is not valid.");
+        return false;
     }
 
-    uint32_t msg_ptr = 0;
-    uint32_t msg_len = 0;
-    if(!message.empty()){
-        msg_ptr = AllocateInGuest(message.length());
-        if (msg_ptr == 0 && message.length() > 0) {
-            if(from_ptr) DeallocateInGuest(from_ptr, from_len);
+    LogMessage("WasmComponent [" + mId + "]: Extracting exports...");
+    auto store_ctx = mStoreOpt->context(); // Or context_mut() if needed for `get`
+
+    // Memory
+    // Instance::get returns std::optional<Extern>, where Extern is like a std::variant
+    std::optional<wasmtime::Extern> memory_extern_opt_variant = mInstanceOpt->get(store_ctx, "memory");
+    if (memory_extern_opt_variant) {
+        // extern_opt_variant.value() gives wasmtime::Extern (the variant-like type)
+        // Or just *memory_extern_opt_variant
+        if (auto* mem_val = std::get_if<wasmtime::Memory>(&(*memory_extern_opt_variant))) {
+            mMemoryOpt.emplace(*mem_val);
+            LogMessage("WasmComponent [" + mId + "]: Found 'memory' export.");
+        } else {
+            LogMessage("WasmComponent [" + mId + "] ERROR (ExtractExports): 'memory' export found but is not Memory type.");
             return false;
         }
-        WriteStringToGuestMemory(msg_ptr, message);
-        msg_len = message.length();
+    } else {
+        LogMessage("WasmComponent [" + mId + "] ERROR (ExtractExports): 'memory' export not found. This is critical.");
+        return false;
     }
 
-    wasm_val_t args_val[4] = {
-        WASM_I32_VAL(static_cast<int32_t>(from_ptr)), WASM_I32_VAL(static_cast<int32_t>(from_len)),
-        WASM_I32_VAL(static_cast<int32_t>(msg_ptr)), WASM_I32_VAL(static_cast<int32_t>(msg_len))
+    // Functions
+    auto get_func_from_extern = [&](const std::string& name) -> std::optional<wasmtime::Func> {
+        std::optional<wasmtime::Extern> extern_opt_variant = mInstanceOpt->get(store_ctx, name);
+        if (extern_opt_variant) {
+            if (auto* func_val = std::get_if<wasmtime::Func>(&(*extern_opt_variant))) {
+                 LogMessage("WasmComponent [" + mId + "]: Found '" + name + "' export.");
+                 return *func_val;
+            }
+        }
+        LogMessage("WasmComponent [" + mId + "] INFO: Export '" + name + "' not found or not a function.");
+        return std::nullopt;
     };
-    wasm_val_vec_t c_args = WASM_ARRAY_VEC(args_val);
-    wasm_val_vec_t c_results; wasm_val_vec_new_empty(&c_results);
 
-    wasm_trap_t* trap = wasm_func_call(mOnMessageFuncFromWasm, &c_args, &c_results);
-    wasm_val_vec_delete(&c_results);
+    mAllocateFuncOpt = get_func_from_extern("allocate");
+    mDeallocateFuncOpt = get_func_from_extern("deallocate");
+    mInitializeFuncOpt = get_func_from_extern("initialize");
+    mUpdateFuncOpt = get_func_from_extern("update");
+    mOnMessageFuncOpt = get_func_from_extern("onMessage");
+    mTerminateFuncOpt = get_func_from_extern("terminate");
 
-    if (from_ptr) DeallocateInGuest(from_ptr, from_len);
-    if (msg_ptr) DeallocateInGuest(msg_ptr, msg_len);
-
-    if (trap) { mOwnerEngine->HandleWasmTrap("WASM onMessage", trap, mId); return false; }
+    if (!mAllocateFuncOpt || !mDeallocateFuncOpt) {
+        LogMessage("WasmComponent [" + mId + "] WARN (ExtractExports): 'allocate' or 'deallocate' are missing. Host memory operations will fail.");
+    }
     return true;
 }
 
-bool WasmComponent::Terminate() {
-    if (!mIsInitialized && !mInstance) return true;
-    bool success = CallVoidExport(mTerminateFuncFromWasm, "WASM terminate");
-    mIsInitialized = false;
+
+bool WasmComponent::TriggerWasmUpdate() {
+    if (!mIsInitialized || !mUpdateFuncOpt || !mStoreOpt) {
+        return true;
+    }
+    try {
+        mStoreOpt->context().set_fuel(100'000'000).unwrap();
+        mStoreOpt->context().set_epoch_deadline(1);
+        mUpdateFuncOpt->call(mStoreOpt->context(), {}).unwrap();
+    } catch (const wasmtime::Error& e) {
+        if(mOwnerEngine) mOwnerEngine->LogWasmException("WASM update call", e, mId); return false;
+    } catch (const wasmtime::Trap& t) {
+        if(mOwnerEngine) mOwnerEngine->LogWasmException("WASM update call", t, mId); return false;
+    } catch (const std::exception& e) {
+        if(mOwnerEngine) mOwnerEngine->LogWasmException("WASM update call", e, mId); return false;
+    }
+    return true;
+}
+
+bool WasmComponent::DeliverMessage(const std::string& fromId, const std::string& messageContent) {
+    if (!mIsInitialized || !mOnMessageFuncOpt || !mStoreOpt) {
+        return true;
+    }
+    LogMessage("WasmComponent [" + mId + "]: Delivering message from '" + fromId + "' content: '" + messageContent + "'");
+
+    uint32_t from_ptr = 0, msg_ptr = 0;
+    uint32_t from_len = static_cast<uint32_t>(fromId.length());
+    uint32_t msg_len = static_cast<uint32_t>(messageContent.length());
+    bool success = false;
+
+    try {
+        if (from_len > 0) {
+            from_ptr = AllocateInGuest(from_len);
+            if (from_ptr == 0 && from_len > 0) throw std::runtime_error("Failed to allocate for from_id string (returned 0)");
+            WriteStringToGuestMemory(from_ptr, fromId);
+        }
+        if (msg_len > 0) {
+            msg_ptr = AllocateInGuest(msg_len);
+            if (msg_ptr == 0 && msg_len > 0) throw std::runtime_error("Failed to allocate for message_content string (returned 0)");
+            WriteStringToGuestMemory(msg_ptr, messageContent);
+        }
+
+        std::vector<wasmtime::Val> params;
+        params.emplace_back(static_cast<int32_t>(from_ptr));
+        params.emplace_back(static_cast<int32_t>(from_len));
+        params.emplace_back(static_cast<int32_t>(msg_ptr));
+        params.emplace_back(static_cast<int32_t>(msg_len));
+
+        mStoreOpt->context().set_fuel(100'000'000).unwrap();
+        mStoreOpt->context().set_epoch_deadline(1);
+        mOnMessageFuncOpt->call(mStoreOpt->context(), params).unwrap();
+        success = true;
+
+    } catch (const wasmtime::Error& e) {
+        if(mOwnerEngine) mOwnerEngine->LogWasmException("WASM onMessage processing", e, mId); success = false;
+    } catch (const wasmtime::Trap& t) {
+        if(mOwnerEngine) mOwnerEngine->LogWasmException("WASM onMessage processing", t, mId); success = false;
+    } catch (const std::exception& e) {
+        if(mOwnerEngine) mOwnerEngine->LogWasmException("WASM onMessage processing", e, mId); success = false;
+    }
+
+    try {
+        if (from_ptr != 0 && from_len > 0) DeallocateInGuest(from_ptr, from_len);
+    } catch (...) { /* Best effort, suppress */ }
+    try {
+        if (msg_ptr != 0 && msg_len > 0) DeallocateInGuest(msg_ptr, msg_len);
+    } catch (...) { /* Best effort, suppress */ }
     return success;
 }
 
-byte_t* WasmComponent::GetGuestMemoryDataPtr() {
-    if (!mMemory) return nullptr;
-    return wasm_memory_data(mMemory);
-}
-
-size_t WasmComponent::GetGuestMemoryDataSize() {
-    if (!mMemory) return 0;
-    return wasm_memory_data_size(mMemory);
-}
-
-void WasmComponent::WriteStringToGuestMemory(uint32_t guestPtr, const std::string& str) {
-    byte_t* memData = GetGuestMemoryDataPtr();
-    if (!memData || (guestPtr + str.length() > GetGuestMemoryDataSize() && str.length() > 0) ) {
-        LogMessage("WasmComponent " + mId + " ERROR: WriteString Out of bounds/No mem. Ptr: " + std::to_string(guestPtr) + ", StrLen: " + std::to_string(str.length()) + ", MemSize: " + std::to_string(GetGuestMemoryDataSize()));
+void WasmComponent::Terminate() {
+    if (!mIsInitialized && !mInstanceOpt) {
+        LogMessage("WasmComponent [" + mId + "]: Terminate called, but not initialized or already uninstantiated.");
+        mIsInitialized = false;
         return;
     }
-    if(!str.empty()) memcpy(memData + guestPtr, str.data(), str.length());
-}
-
-std::string WasmComponent::ReadStringFromGuestMemory(uint32_t guestPtr, uint32_t len) {
-    byte_t* memData = GetGuestMemoryDataPtr();
-    if (!memData || (guestPtr + len > GetGuestMemoryDataSize() && len > 0) ) {
-        LogMessage("WasmComponent " + mId + " ERROR: ReadString Out of bounds/No mem. Ptr: " + std::to_string(guestPtr) + ", Len: " + std::to_string(len) + ", MemSize: " + std::to_string(GetGuestMemoryDataSize()));
-        return "";
+    LogMessage("WasmComponent [" + mId + "]: Terminating...");
+    if (mTerminateFuncOpt && mStoreOpt && mInstanceOpt) {
+        LogMessage("WasmComponent [" + mId + "]: Calling WASM 'terminate' function.");
+        try {
+            mStoreOpt->context().set_fuel(100'000'000).unwrap();
+            mStoreOpt->context().set_epoch_deadline(1);
+            mTerminateFuncOpt->call(mStoreOpt->context(), {}).unwrap();
+        } catch (const wasmtime::Error& e) {
+            if(mOwnerEngine) mOwnerEngine->LogWasmException("WASM terminate call", e, mId);
+        } catch (const wasmtime::Trap& t) {
+            if(mOwnerEngine) mOwnerEngine->LogWasmException("WASM terminate call", t, mId);
+        } catch (const std::exception& e) {
+            if(mOwnerEngine) mOwnerEngine->LogWasmException("WASM terminate call", e, mId);
+        }
+    } else {
+         LogMessage("WasmComponent [" + mId + "]: No WASM 'terminate' function or instance/store not available.");
     }
-    if (len == 0) return "";
-    return std::string(reinterpret_cast<const char*>(memData + guestPtr), len);
+
+    mIsInitialized = false;
+    mMemoryOpt.reset();
+    mInstanceOpt.reset();
+    if (mStoreOpt) {
+      // mStoreOpt->context().data(nullptr); // Not available with void* in store constructor typically
+      mStoreOpt.reset();
+    }
+    mAllocateFuncOpt.reset();
+    mDeallocateFuncOpt.reset();
+    mInitializeFuncOpt.reset();
+    mUpdateFuncOpt.reset();
+    mOnMessageFuncOpt.reset();
+    mTerminateFuncOpt.reset();
+    LogMessage("WasmComponent [" + mId + "]: Terminated and resources released.");
 }
 
 uint32_t WasmComponent::AllocateInGuest(uint32_t size) {
-    if (!mAllocateFunc) {
-        LogMessage("WasmComponent " + mId + " ERROR: AllocateInGuest - mAllocateFunc is null.");
-        return 0;
+    if (!mIsInitialized || !mAllocateFuncOpt || !mStoreOpt) {
+        throw std::runtime_error("AllocateInGuest: Component not ready or allocate function missing for " + mId);
     }
-    if (!mIsInitialized && size > 0) {
-        LogMessage("WasmComponent " + mId + " WARN: AllocateInGuest called on uninitialized component.");
-    }
+    if (size == 0) return 0;
 
-    wasm_val_t args_val[1] = { WASM_I32_VAL(static_cast<int32_t>(size)) };
-    wasm_val_t results_val[1];
-    wasm_val_vec_t args = WASM_ARRAY_VEC(args_val);
-    wasm_val_vec_t results = WASM_ARRAY_VEC(results_val);
+    std::vector<wasmtime::Val> params;
+    params.emplace_back(static_cast<int32_t>(size));
 
-    wasm_trap_t* trap = wasm_func_call(mAllocateFunc, &args, &results);
-    if (trap) {
-        mOwnerEngine->HandleWasmTrap("AllocateInGuest", trap, mId);
-        return 0;
+    auto results_vec = mAllocateFuncOpt->call(mStoreOpt->context(), params).unwrap();
+
+    if (results_vec.empty() || results_vec[0].kind() != wasmtime::ValKind::I32) {
+        throw std::runtime_error("AllocateInGuest: Wasm allocate function returned invalid type or no result for " + mId);
     }
-    if (results_val[0].kind != WASM_I32) {
-        LogMessage("WasmComponent " + mId + " ERROR: mAllocateFunc did not return I32.");
-        return 0;
+    uint32_t ptr = static_cast<uint32_t>(results_vec[0].i32());
+    if (ptr == 0 && size > 0) {
+        LogMessage("WasmComponent [" + mId + "] WARN (AllocateInGuest): Guest 'allocate' for size " + std::to_string(size) + " returned 0.");
     }
-    return static_cast<uint32_t>(results_val[0].of.i32);
+    return ptr;
 }
 
 void WasmComponent::DeallocateInGuest(uint32_t ptr, uint32_t size) {
-    if (!mDeallocateFunc) {
-        LogMessage("WasmComponent " + mId + " ERROR: DeallocateInGuest - mDeallocateFunc is null.");
+    if (!mIsInitialized || !mDeallocateFuncOpt || !mStoreOpt) {
+        LogMessage("WasmComponent [" + mId + "] WARN (DeallocateInGuest): Not ready to deallocate. Ptr: " + std::to_string(ptr));
         return;
     }
-     if (!mIsInitialized && ptr > 0) {
-        LogMessage("WasmComponent " + mId + " WARN: DeallocateInGuest called on uninitialized component.");
+    if (ptr == 0) return;
+
+    std::vector<wasmtime::Val> params;
+    params.emplace_back(static_cast<int32_t>(ptr));
+    params.emplace_back(static_cast<int32_t>(size));
+
+    try {
+        mDeallocateFuncOpt->call(mStoreOpt->context(), params).unwrap();
+    } catch (const wasmtime::Error& e) {
+        if(mOwnerEngine) mOwnerEngine->LogWasmException("WASM DeallocateInGuest call", e, mId);
+    } catch (const wasmtime::Trap& t) {
+        if(mOwnerEngine) mOwnerEngine->LogWasmException("WASM DeallocateInGuest call", t, mId);
+    } catch (const std::exception& e) { // Should be rare if above are caught
+        if(mOwnerEngine) mOwnerEngine->LogWasmException("WASM DeallocateInGuest call", e, mId);
+    }
+}
+
+void WasmComponent::WriteStringToGuestMemory(uint32_t guestPtr, const std::string& str) {
+    if (!mIsInitialized || !mMemoryOpt || !mStoreOpt) {
+        throw std::runtime_error("WriteStringToGuestMemory: Component not ready for " + mId);
+    }
+    if (str.empty()) return;
+
+    size_t str_len = str.length();
+    auto store_ctx = mStoreOpt->context();
+    wasmtime::Span<uint8_t> mem_span = mMemoryOpt->data(store_ctx);
+    uint8_t* mem_data_ptr = mem_span.data();
+    size_t current_mem_byte_size = mem_span.size();
+
+    if (guestPtr >= current_mem_byte_size || current_mem_byte_size - guestPtr < str_len) {
+        throw std::out_of_range("WriteStringToGuestMemory: Out of bounds for " + mId);
+    }
+    std::memcpy(mem_data_ptr + guestPtr, str.data(), str_len);
+}
+
+std::string WasmComponent::ReadStringFromGuestMemory(uint32_t guestPtr, uint32_t len) {
+    if (len == 0) return "";
+    if (!mIsInitialized || !mMemoryOpt || !mStoreOpt) {
+        return "[ReadError:WasmComponentNotReady:" + mId + "]";
     }
 
-    wasm_val_t args_val[2] = { WASM_I32_VAL(static_cast<int32_t>(ptr)), WASM_I32_VAL(static_cast<int32_t>(size)) };
-    wasm_val_vec_t args = WASM_ARRAY_VEC(args_val);
-    wasm_val_vec_t results_vec;
-    wasm_val_vec_new_empty(&results_vec);
+    auto store_ctx = mStoreOpt->context();
+    wasmtime::Span<uint8_t> mem_span = mMemoryOpt->data(store_ctx);
+    uint8_t* mem_data_ptr = mem_span.data();
+    size_t current_mem_byte_size = mem_span.size();
 
-    wasm_trap_t* trap = wasm_func_call(mDeallocateFunc, &args, &results_vec);
-    wasm_val_vec_delete(&results_vec);
-
-    if (trap) {
-        mOwnerEngine->HandleWasmTrap("DeallocateInGuest", trap, mId);
+    if (guestPtr >= current_mem_byte_size || current_mem_byte_size - guestPtr < len) {
+        return "[ReadError:OutOfBounds:" + mId + "]";
+    }
+    try {
+        return std::string(reinterpret_cast<const char*>(mem_data_ptr + guestPtr), len);
+    } catch (const std::exception& e) {
+        return "[ReadError:ExceptionAtConstruct:" + mId + ":" + e.what() + "]";
     }
 }
 

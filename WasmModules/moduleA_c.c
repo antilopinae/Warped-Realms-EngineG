@@ -23,14 +23,20 @@ void deallocate(void* ptr, int size) {
 
 EMSCRIPTEN_KEEPALIVE
 void initialize(void) {
-  const char* msg = "SIMPLE_A: Initialized";
-  engine_log_wasm(msg, strlen(msg));
+  	char* msg = (char*)allocate(9);
+    snprintf(msg, 9, "SIMPLE_A");
+
+   engine_log_wasm(msg, strlen(msg));
+   deallocate(msg, 9);
 }
 
 EMSCRIPTEN_KEEPALIVE
 void update(void) {
-   const char* msg = "SIMPLE_A: Update";
-   engine_log_wasm(msg, strlen(msg));
+//  	char debug_buf[64];
+//	snprintf(debug_buf, sizeof(debug_buf), "WASM_DBG: ptr=%p, len=%d for '%s'", msg, (int)strlen(msg), msg);
+//	engine_log_wasm(debug_buf, strlen(debug_buf));
+    const char* msgA = "SIMPLE_A: Update";
+   	engine_log_wasm(msgA, strlen(msgA));
 }
 
 EMSCRIPTEN_KEEPALIVE

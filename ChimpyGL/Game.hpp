@@ -17,10 +17,10 @@
 
 #endif
 
-constexpr char* WASM_FILE_PATH = ASSETS_DIR"simple_args.wasm";
+constexpr const char* WASM_FILE_PATH = ASSETS_DIR"simple_args.wasm";
 constexpr int SCREEN_WIDTH = 800;
 constexpr int SCREEN_HEIGHT = 600;
-constexpr char* FONT_PATH = ASSETS_DIR"Arial.ttf";
+constexpr const char* FONT_PATH = ASSETS_DIR"Arial.ttf";
 constexpr int FONT_SIZE = 24;
 
 namespace EngineG{

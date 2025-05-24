@@ -20,5 +20,6 @@ target_link_libraries(ChimpyGL PUBLIC
         asio
 #        pthread
 #        dl
-        wasmtime
+#        wasmtime
+        wasmtime-cpp
 )
