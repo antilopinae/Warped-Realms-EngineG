@@ -2,17 +2,15 @@
 
 #include <cstdint>
 
-namespace EngineG::Network
-{
+namespace EngineG::Network {
 
-enum class GameMsgTypes : uint32_t
-{
-  ServerAccept,
-  ServerPing,
-  GamePlayerDisconnect,
+enum class GameMsgTypes : uint32_t {
+    ServerAccept,
+    ServerPing,
+    GamePlayerDisconnect,
 
-  ClientPing,
-  ClientInputUpdate
+    ClientPing,
+    ClientInputUpdate
 };
 
 }

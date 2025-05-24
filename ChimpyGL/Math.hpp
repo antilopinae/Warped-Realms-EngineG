@@ -2,7 +2,6 @@
 
 #include "Math/Math.hpp"
 
-namespace EngineG
-{
+namespace EngineG {
 using namespace Math;
 }

@@ -1,98 +1,83 @@
 #pragma once
 
+#include "Component/Math.hpp"
 #include <cstdint>
 #include <vector>
 
-#include "Component/Math.hpp"
+#ifdef DEBUG
+#define ASSETS_DIR "../../Assets/"
 
-namespace EngineG
-{
+#else
+#define ASSETS_DIR "Assets/"
 
-class Actor
-{
-  public:
-  enum State
-  {
-    EActive,
-    EPaused,
-    EDead
-  };
+#endif
 
-  Actor(class Game* game);
-  virtual ~Actor();
+namespace EngineG {
 
-  // Update function called from Game (not overridable)
-  void Update(float deltaTime);
-  // Updates all the components attached to the actor (not overridable)
-  void UpdateComponents(float deltaTime);
-  // Any actor-specific update code (overridable)
-  virtual void UpdateActor(float deltaTime);
+class Actor {
+public:
+    enum State { EActive, EPaused, EDead };
 
-  // ProcessInput function called from Game (not overridable)
-  void ProcessInput(const uint8_t* keyState);
-  // Any actor-specific input code (overridable)
-  virtual void ActorInput(const uint8_t* keyState);
+    Actor(class Game* game);
+    virtual ~Actor();
 
-  // Getters/setters
-  const Vector2& GetPosition() const
-  {
-    return mPosition;
-  }
-  void SetPosition(const Vector2& pos)
-  {
-    mPosition = pos;
-  }
-  float GetScale() const
-  {
-    return mScale;
-  }
-  void SetScale(float scale)
-  {
-    mScale = scale;
-  }
-  float GetRotation() const
-  {
-    return mRotation;
-  }
-  void SetRotation(float rotation)
-  {
-    mRotation = rotation;
-  }
+    // Update function called from Game (not overridable)
+    void Update(float deltaTime);
+    // Updates all the components attached to the actor (not overridable)
+    void UpdateComponents(float deltaTime);
+    // Any actor-specific update code (overridable)
+    virtual void UpdateActor(float deltaTime);
 
-  Vector2 GetForward() const
-  {
-    return Vector2(Math::Cos(mRotation), -Math::Sin(mRotation));
-  }
+    // ProcessInput function called from Game (not overridable)
+    void ProcessInput(const uint8_t* keyState);
+    // Any actor-specific input code (overridable)
+    virtual void ActorInput(const uint8_t* keyState);
 
-  State GetState() const
-  {
-    return mState;
-  }
-  void SetState(State state)
-  {
-    mState = state;
-  }
+    // Getters/setters
+    const Vector2& GetPosition() const { return mPosition; }
+    void SetPosition(const Vector2& pos) { mPosition = pos; }
+    float GetScale() const { return mScale; }
+    void SetScale(float scale) { mScale = scale; }
+    float GetRotation() const { return mRotation; }
+    void SetRotation(float rotation) { mRotation = rotation; }
 
-  class Game* GetGame()
-  {
-    return mGame;
-  }
+    Vector2 GetForward() const { return Vector2(Math::Cos(mRotation), -Math::Sin(mRotation)); }
 
-  // Add/remove components
-  void AddComponent(class Component* component);
-  void RemoveComponent(class Component* component);
+    State GetState() const { return mState; }
+    void SetState(State state) { mState = state; }
 
-  private:
-  // Actor's state
-  State mState;
+    class Game* GetGame() { return mGame; }
 
-  // Transform
-  Vector2 mPosition;
-  float mScale;
-  float mRotation;
+    // Add/remove components
+    void AddComponent(class Component* component);
+    void RemoveComponent(class Component* component);
 
-  std::vector<class Component*> mComponents;
-  class Game* mGame;
+    virtual std::string GetUniqueActorIdAsString() const;
+    virtual Component* GetComponentToHostWasmScript(const std::string& scriptSlotName);
+
+    template <typename T>
+    T* GetComponentOfType() {
+        for (auto c : mComponents) {
+            T* t = dynamic_cast<T*>(c);
+            if (t != nullptr) {
+                return t;
+            }
+        }
+        return nullptr;
+    }
+
+private:
+    // Actor's state
+    State mState;
+    // std::string mActorId;
+
+    // Transform
+    Vector2 mPosition;
+    float mScale;
+    float mRotation;
+
+    std::vector<class Component*> mComponents;
+    class Game* mGame;
 };
 
-}    // namespace EngineG
+}  // namespace EngineG

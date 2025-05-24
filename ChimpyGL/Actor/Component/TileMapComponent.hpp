@@ -1,25 +1,22 @@
 #pragma once
 
+#include "SpriteComponent.hpp"
 #include <string>
 #include <vector>
 
-#include "SpriteComponent.hpp"
+namespace EngineG {
 
-namespace EngineG
-{
+class TileMapComponent : public SpriteComponent {
+public:
+    TileMapComponent(Actor* owner, int drawOrder = 100);
+    void Draw(SDL_Renderer* renderer) override;
 
-class TileMapComponent : public SpriteComponent
-{
-  public:
-  TileMapComponent(Actor* owner, int drawOrder = 100);
-  void Draw(SDL_Renderer* renderer) override;
+    void LoadTileMapFromCSV(const std::vector<std::string>& csv);
+    void SetTileMapRule();
 
-  void LoadTileMapFromCSV(const std::vector<std::string>& csv);
-  void SetTileMapRule();
-
-  private:
-  std::vector<std::vector<int>> mTileRules;
-  int mCellsHeight, mCellsWidth;
+private:
+    std::vector<std::vector<int>> mTileRules;
+    int mCellsHeight, mCellsWidth;
 };
 
-}    // namespace EngineG
+}  // namespace EngineG

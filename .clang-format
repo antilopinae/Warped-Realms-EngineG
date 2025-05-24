@@ -1,3 +1,73 @@
 BasedOnStyle: Google
 Language: Cpp
+
+# Основные параметры
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
 ColumnLimit: 130
+
+AccessModifierOffset: -4
+EmptyLineAfterAccessModifier: Never
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortIfStatementsOnASingleLine: true
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterStruct: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+
+# Аргументы и параметры
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: false
+BinPackParameters: false
+
+# Скобки и переносы
+BreakBeforeBraces: Attach
+AlwaysBreakAfterReturnType: None
+BreakConstructorInitializers: BeforeComma
+AllowShortLoopsOnASingleLine: false
+
+# Пробелы
+SpaceAfterCStyleCast: true
+SpaceBeforeParens: ControlStatements
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Выравнивание
+AlignAfterOpenBracket: Align
+AlignOperands: true
+AlignTrailingComments: true
+
+# Работа с include'ами
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:           '^<.*\.h>'
+    Priority:        1
+    SortPriority:    0
+  - Regex:           '^".*\.h"'
+    Priority:        2
+    SortPriority:    1
+  - Regex:           '.*'
+    Priority:        3
+    SortPriority:    2
+
+SortIncludes: true
+IncludeIsMainRegex: '([-_](test|unittest))?$'
+
+# Комментарии и указатели
+ReflowComments: true
+CommentPragmas: '^ IWYU pragma:'
+PointerAlignment: Left
+DerivePointerAlignment: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+Cpp11BracedListStyle: true
+SortUsingDeclarations: true

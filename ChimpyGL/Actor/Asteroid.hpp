@@ -2,23 +2,17 @@
 
 #include "Actor.hpp"
 
-namespace EngineG
-{
+namespace EngineG {
 
-class Asteroid : public Actor
-{
-  public:
-  Asteroid(class Game* game);
-  ~Asteroid();
+class Asteroid : public Actor {
+public:
+    Asteroid(class Game* game);
+    ~Asteroid();
 
-  class CircleComponent* GetCircle()
-  {
-    return mCircle;
-  }
+    class CircleComponent* GetCircle() { return mCircle; }
 
-  private:
-  class CircleComponent* mCircle;
+private:
+    class CircleComponent* mCircle;
 };
 
-
-}    // namespace EngineG
+}  // namespace EngineG

@@ -2,7 +2,4 @@
 
 #include "Game.hpp"
 
-namespace EngineG
-{
-
-}
+namespace EngineG {}

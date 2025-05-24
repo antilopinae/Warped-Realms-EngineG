@@ -4,18 +4,16 @@
 #include "NetClient.hpp"
 #include "NetMessage.hpp"
 
-namespace EngineG::Network
-{
+namespace EngineG::Network {
 
-class GameClient : public ClientInterface<GameMsgTypes>
-{
-  public:
-  GameClient() = default;
+class GameClient : public ClientInterface<GameMsgTypes> {
+public:
+    GameClient() = default;
 
-  public:
-  void PingServer();
-  void SendInputUpdate(const PlayerInput& currentInput);
-  void RequestWorldState();
+public:
+    void PingServer();
+    void SendInputUpdate(const PlayerInput& currentInput);
+    void RequestWorldState();
 };
 
-}    // namespace EngineG::Network
+}  // namespace EngineG::Network

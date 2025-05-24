@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "Color.hpp"
 #include "Mathf.hpp"
 #include "Matrix3.hpp"
@@ -10,7 +9,6 @@
 #include "Vector.hpp"
 #include "Vector2.hpp"
 #include "Vector3.hpp"
-
 
 // namespace EngineG{
 // /*

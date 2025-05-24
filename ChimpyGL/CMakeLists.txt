@@ -18,8 +18,9 @@ target_link_libraries(ChimpyGL PUBLIC
         SDL2_image::SDL2_image
         box2d
         asio
-#        pthread
-#        dl
-#        wasmtime
         wasmtime-cpp
+        nlohmann_json::nlohmann_json
 )
+
+#include(Format)
+#Format(ChimpyGL .)

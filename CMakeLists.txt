@@ -72,14 +72,17 @@ set_target_properties(quickjs PROPERTIES
 )
 
 # dependencies
-FindOrCloneRep("SDL2" "https://github.com/libsdl-org/SDL.git" "main" ON)
+FindOrCloneRep("SDL2" "https://github.com/libsdl-org/SDL" "main" ON)
 include_directories(${SDL2_INCLUDE_DIRS})
 
 # dependencies
 FindOrCloneRep("wasmtime-cpp" "https://github.com/bytecodealliance/wasmtime-cpp" "main" ON)
 
 # dependencies
-FindOrCloneRep("wasmtime" "https://github.com/bytecodealliance/wasmtime" "main" ON)
+FindOrCloneRep("nlohmann_json" "https://github.com/nlohmann/json" "develop" ON)
+
+## dependencies
+#FindOrCloneRep("wasmtime" "https://github.com/bytecodealliance/wasmtime" "main" ON)
 
 #dependencies
 FindOrCloneRep("asio" "https://github.com/chriskohlhoff/asio.git" "asio-1-31-0" ON)
@@ -159,7 +162,6 @@ endif()
 
 add_subdirectory(ChimpyGL)
 add_subdirectory(Game)
-add_subdirectory(Deploy)
 
 find_program(EMCC emcc)
 if(NOT EMCC)

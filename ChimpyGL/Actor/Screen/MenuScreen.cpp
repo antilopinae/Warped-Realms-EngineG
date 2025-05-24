@@ -2,7 +2,4 @@
 
 #include "../ScreenManager.hpp"
 
-namespace EngineG
-{
-
-}
+namespace EngineG {}

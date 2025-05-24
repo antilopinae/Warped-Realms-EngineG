@@ -1,8 +1,9 @@
 #pragma once
+
 #include <string>
 
-namespace WasmHost {
+namespace EngineG::Wasm {
 
 void LogMessage(const std::string& message);
 
-}  // namespace WasmHost
+}  // namespace EngineG::Wasm
