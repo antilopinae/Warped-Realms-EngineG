@@ -24,6 +24,7 @@ struct WasmEntity {
 
 struct WasmDeferredUpdate {
     std::string targetComponentId;
+    float deltaTime;
 };
 
 class WasmEngine {
@@ -45,7 +46,7 @@ public:
     void SendMessage(const std::string& fromComponentId,      // Can be "host" or a component ID
                      const std::string& toEntityAndSlotName,  // "EntityName.SlotName"
                      const std::string& messageContent);
-    void Update();
+    void Update(float deltaTime);
 
     void LogWasmException(const std::string& operationName, const std::exception& e, const std::string& componentId);
     void LogWasmException(const std::string& operationName, const wasmtime::Error& e, const std::string& componentId);
@@ -70,7 +71,7 @@ private:
     void ProcessMessageQueue();
     void DeliverInboxMessages();
     void ProcessDeferredWasmUpdates();
-    void ScheduleDeferredWasmUpdate(const std::string& componentId);
+    void ScheduleDeferredWasmUpdate(const std::string& componentId, float deltaTime);
 };
 
 }  // namespace EngineG::Wasm

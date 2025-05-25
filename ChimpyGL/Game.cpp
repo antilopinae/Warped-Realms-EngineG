@@ -145,7 +145,7 @@ void Game::UpdateGame() {
         actor->Update(deltaTime);
     }
 
-    mWasmIntegrationService.Update();
+    mWasmIntegrationService.Update(deltaTime);
 
     mUpdatingActors = false;
 

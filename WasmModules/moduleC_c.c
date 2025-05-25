@@ -27,7 +27,7 @@ void initialize(void) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-void update(void) {
+void update(float deltaTime) {
     const char* msg = "SIMPLE_C: Update";
     engine_log_wasm(msg, strlen(msg));
 }

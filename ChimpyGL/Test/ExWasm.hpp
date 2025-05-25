@@ -33,7 +33,7 @@ void ExWasm() {
             if (i == 0) {
                 actor.SendMessage("host_main", "Player.scriptA", "MSG_FROM_HOST_TO_B_1");
             }
-            gameEngine->Update();
+            gameEngine->Update(2.0f);
         }
 
         actor.AttachComponent("Player", "scriptB", ASSETS_DIR "moduleC_c.wasm");
@@ -44,7 +44,7 @@ void ExWasm() {
             if (i == 0) {
                 actor.SendMessage("host_main", "Player.scriptB", "MSG_FROM_HOST_TO_B_2");
             }
-            gameEngine->Update();
+            gameEngine->Update(2.0f);
         }
 
         actor.UnloadComponentFromSlot("Player", "scriptB");

@@ -8,7 +8,6 @@
 
 __attribute__((import_module("env"))) __attribute__((import_name("engine_log_wasm"))) extern void engine_log_wasm(const char* ptr,
                                                                                                                   int len);
-
 __attribute__((import_module("env"))) __attribute__((import_name("getInput"))) extern void getInput();
 
 EMSCRIPTEN_KEEPALIVE
@@ -32,10 +31,13 @@ void initialize(void) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-void update(void) {
+void update(float deltaTime) {
     const char* msgA = "UPDATE";
     engine_log_wasm(msgA, strlen(msgA));
     getInput();
+    char log_buffer[128];
+    snprintf(log_buffer, sizeof(log_buffer), "WASM_MODULE_NAME: Update called with deltaTime: %f", 1 / deltaTime);
+    engine_log_wasm(log_buffer, strlen(log_buffer));
 }
 
 EMSCRIPTEN_KEEPALIVE

@@ -16,9 +16,9 @@ WasmIntegrationService::WasmIntegrationService() {
 WasmIntegrationService::~WasmIntegrationService() {
 }
 
-void WasmIntegrationService::Update() {
+void WasmIntegrationService::Update(float deltaTime) {
     if (!mWasmEngine) return;
-    mWasmEngine->Update();
+    mWasmEngine->Update(deltaTime);
 }
 
 bool WasmIntegrationService::AttachWasmComponent(const std::string& ownerId,

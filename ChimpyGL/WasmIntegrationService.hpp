@@ -15,7 +15,7 @@ public:
     WasmIntegrationService();
     ~WasmIntegrationService();
 
-    void Update();
+    void Update(float deltaTime);
 
     bool AttachWasmComponent(const std::string& ownerId,
                              const std::string& scriptSlotName,

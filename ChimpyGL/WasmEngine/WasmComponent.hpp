@@ -29,7 +29,7 @@ public:
     WasmComponent& operator=(WasmComponent&&) = default;
 
     bool Initialize();
-    bool TriggerWasmUpdate();
+    bool TriggerWasmUpdate(float deltaTime);
     bool DeliverMessage(const std::string& fromId, const std::string& message);
     void Terminate();
 

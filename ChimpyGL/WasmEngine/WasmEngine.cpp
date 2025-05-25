@@ -198,8 +198,8 @@ void WasmEngine::DeliverInboxMessages() {
     }
 }
 
-void WasmEngine::ScheduleDeferredWasmUpdate(const std::string& componentId) {
-    mDeferredWasmUpdates.push_back({componentId});
+void WasmEngine::ScheduleDeferredWasmUpdate(const std::string& componentId, float deltaTime) {
+    mDeferredWasmUpdates.push_back({componentId, deltaTime});
 }
 
 void WasmEngine::ProcessDeferredWasmUpdates() {
@@ -209,7 +209,7 @@ void WasmEngine::ProcessDeferredWasmUpdates() {
         auto component_it = mLoadedComponents.find(call.targetComponentId);
         if (component_it != mLoadedComponents.end() && component_it->second && component_it->second->IsInitialized()) {
             try {
-                if (!component_it->second->TriggerWasmUpdate()) {
+                if (!component_it->second->TriggerWasmUpdate(call.deltaTime)) {
                     LogMessage("WasmEngine WARN: TriggerWasmUpdate for component '" + call.targetComponentId +
                                "' returned false.");
                 }
@@ -227,10 +227,10 @@ void WasmEngine::ProcessDeferredWasmUpdates() {
     }
 }
 
-void WasmEngine::Update() {
+void WasmEngine::Update(float deltaTime) {
     for (auto const& [id, component_ptr] : mLoadedComponents) {
         if (component_ptr && component_ptr->IsInitialized()) {
-            ScheduleDeferredWasmUpdate(id);
+            ScheduleDeferredWasmUpdate(id, deltaTime);
         }
     }
     ProcessMessageQueue();

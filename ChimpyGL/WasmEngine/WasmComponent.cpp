@@ -266,14 +266,16 @@ bool WasmComponent::ExtractExports() {
     return true;
 }
 
-bool WasmComponent::TriggerWasmUpdate() {
+bool WasmComponent::TriggerWasmUpdate(float deltaTime) {
     if (!mIsInitialized || !mUpdateFuncOpt || !mStoreOpt) {
         return true;
     }
     try {
         mStoreOpt->context().set_fuel(100'000'000).unwrap();
         mStoreOpt->context().set_epoch_deadline(1);
-        mUpdateFuncOpt->call(mStoreOpt->context(), {}).unwrap();
+        std::vector<wasmtime::Val> params;
+        params.emplace_back(deltaTime);
+        mUpdateFuncOpt->call(mStoreOpt->context(), params).unwrap();
     } catch (const wasmtime::Error& e) {
         if (mOwnerEngine) mOwnerEngine->LogWasmException("WASM update call", e, mId);
         return false;

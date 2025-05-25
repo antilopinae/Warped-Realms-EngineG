@@ -35,42 +35,6 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 # dependencies
 FindOrCloneRep("box2d" "https://github.com/erincatto/box2d" "v3.0.0" ON)
 
-set(QUICKJS_DIR "${CMAKE_CURRENT_LIST_DIR}/extern/extern-quickjs")
-set(QUICKJS_LIB "${QUICKJS_DIR}/libquickjs.a")
-set(QUICKJS_INCLUDE_DIR "${QUICKJS_DIR}")
-
-if (EXISTS "${QUICKJS_LIB}")
-    message(STATUS "QuickJS library found at: ${QUICKJS_LIB}")
-else()
-    message(STATUS "QuickJS not found. Building from source...")
-
-    execute_process(
-            COMMAND make
-            WORKING_DIRECTORY ${QUICKJS_DIR}
-            RESULT_VARIABLE quickjs_make_result
-            OUTPUT_VARIABLE quickjs_output
-            ERROR_VARIABLE quickjs_error
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_STRIP_TRAILING_WHITESPACE
-    )
-
-    if (NOT quickjs_make_result EQUAL 0)
-        message(FATAL_ERROR "QuickJS build failed: ${quickjs_error}")
-    endif()
-
-    if (NOT EXISTS "${QUICKJS_LIB}")
-        message(FATAL_ERROR "QuickJS built but library not found: ${QUICKJS_LIB}")
-    endif()
-
-    message(STATUS "QuickJS successfully built.")
-endif()
-
-add_library(quickjs STATIC IMPORTED)
-set_target_properties(quickjs PROPERTIES
-        IMPORTED_LOCATION "${QUICKJS_LIB}"
-        INTERFACE_INCLUDE_DIRECTORIES "${QUICKJS_INCLUDE_DIR}"
-)
-
 # dependencies
 FindOrCloneRep("SDL2" "https://github.com/libsdl-org/SDL" "main" ON)
 include_directories(${SDL2_INCLUDE_DIRS})
