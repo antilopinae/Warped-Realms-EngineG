@@ -14,10 +14,12 @@ build_release/
 **/**.kate-swp
 **/__pycache__/
 **/**.pyc
-/Extern**/
-/extern**/
+/Deps/Extern/extern**/
 /*config.cmake
 /*Config.cmake
+Assets/Unity**
+Assets/Kenney**
+Instruments/
 
 
 ###############################################################################

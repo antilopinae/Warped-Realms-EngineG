@@ -3,6 +3,7 @@
 #include "WasmHostApi.hpp"
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <string>
 #include <variant>
 #include <vector>
@@ -27,5 +28,10 @@ struct HostFunctionBinding {
     std::string import_module_name;    // "env"
     std::string import_function_name;  // Имя, как оно в WASM
     HostFuncVariant function_impl;     // C++ реализация
+
+    HostFunctionBinding(std::string&& module, std::string&& func, HostFuncVariant&& impl)
+    : import_module_name(std::forward<std::string>(module)),
+    import_function_name(std::forward<std::string>(func)),
+    function_impl(std::forward<HostFuncVariant>(impl)) {}
 };
 }  // namespace EngineG::Wasm
