@@ -15,9 +15,9 @@ include(Wasmtime.cmake)
 include(ImGUI.cmake)
 include(MagnumCorrade.cmake)
 include(ImNodes.cmake)
+include(Box2cpp.cmake)
 
 find_package(Boost REQUIRED)
-find_package(box2d REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
 find_package(asio REQUIRED)
@@ -28,7 +28,7 @@ add_library(ChimpyDeps INTERFACE)
 target_link_libraries(ChimpyDeps INTERFACE
       SDL2::SDL2
       SDL2_image::SDL2_image
-      box2d
+      box2cpp
       asio
       wasmtime-cpp
       nlohmann_json::nlohmann_json
@@ -55,4 +55,3 @@ target_link_libraries(ChimpyDeps INTERFACE
 target_include_directories(ChimpyDeps INTERFACE
     "$ENV{HOME}/magnum-integration-install/include"
 )
-

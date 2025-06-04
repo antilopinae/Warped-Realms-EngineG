@@ -8,7 +8,7 @@
 
 #include <yojimbo.h>
 #include <entt/entt.hpp>
-#include <box2d/box2d.h>
+// #include <box2d/box2d.h>
 #include <sodium.h>
 
 #include <fstream>
@@ -24,6 +24,13 @@
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
 #include <Magnum/Platform/Sdl2Application.h>
+
+
+#include <cmath>
+constexpr float f_pi = M_PI;
+
+#include <box2cpp/box2cpp.h>
+#include <box2cpp/debug_imgui_renderer.h>
 
 namespace Magnum { namespace Examples {
 
@@ -55,6 +62,14 @@ namespace Magnum { namespace Examples {
         bool _showAnotherWindow = false;
         Color4 _clearColor = 0x72909aff_rgbaf;
         Float _floatValue = 0.0f;
+
+        b2::World world{b2::World::Params{}};
+        b2::DebugImguiRenderer debug_renderer;
+
+        b2::Body::Params bp;
+
+        b2::Body ground;
+        b2::Body b;
     };
 
     ImGuiExample::ImGuiExample(const Arguments& arguments): Platform::Application{arguments,
@@ -76,7 +91,24 @@ namespace Magnum { namespace Examples {
             /* Have some sane speed, please */
             setMinimalLoopPeriod(16.0_msec);
             #endif
+
             ImNodes::CreateContext();
+
+            ground = world.CreateBody(b2::OwningHandle, bp);
+
+            ground.CreateShape(
+                b2::DestroyWithParent,
+                b2::Shape::Params{},
+                b2Circle{.center = b2Vec2(), .radius = 3}
+            );
+
+            b = world.CreateBody(b2::OwningHandle, bp);
+
+            b.CreateShape(
+                b2::DestroyWithParent,
+                b2::Shape::Params{},
+                b2Circle{.center = b2Vec2(), .radius = 3}
+            );
         }
 
         void ImGuiExample::drawEvent() {
@@ -104,6 +136,10 @@ namespace Magnum { namespace Examples {
                     _showAnotherWindow ^= true;
                 ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                             1000.0/Double(ImGui::GetIO().Framerate), Double(ImGui::GetIO().Framerate));
+
+                debug_renderer.DrawShapes(world);
+                debug_renderer.MouseDrag(world);
+                debug_renderer.DrawModeToggles();
             }
 
             /* 2. Show another simple window, now using an explicit Begin/End pair */

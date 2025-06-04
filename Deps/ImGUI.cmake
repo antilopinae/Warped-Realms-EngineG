@@ -18,3 +18,5 @@ add_library(ImGui::ImGui ALIAS imgui)
 
 # dependencies
 FindOrCloneRep("glfw" "https://github.com/glfw/glfw" "master" OFF)
+
+target_link_libraries(imgui PUBLIC glfw)
