@@ -1,12 +1,5 @@
 cmake_minimum_required(VERSION 3.26.0)
 
-# dependencies
-FindOrCloneRep("nlohmann_json" "https://github.com/nlohmann/json" "develop" OFF)
-FindOrCloneRep("entt" "https://github.com/skypjack/entt" "master" OFF)
-FindOrCloneRep("cereal" "https://github.com/USCiLab/cereal" "master" OFF)
-FindOrCloneRep("sodium" "https://github.com/jedisct1/libsodium" "master" OFF)
-FindOrCloneRep("yojimbo" "https://github.com/mas-bandwidth/yojimbo" "main" OFF)
-
 add_subdirectory(Extern/spine-cpp)
 
 include(Yojimbo.cmake)
@@ -16,12 +9,18 @@ include(ImGUI.cmake)
 include(MagnumCorrade.cmake)
 include(ImNodes.cmake)
 include(Box2cpp.cmake)
+include(Cereal.cmake)
 
-find_package(Boost REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
 find_package(asio REQUIRED)
 find_package(OpenGL REQUIRED)
+
+# dependencies
+FindOrCloneRep("nlohmann_json" "https://github.com/nlohmann/json" "develop" OFF)
+FindOrCloneRep("entt" "https://github.com/skypjack/entt" "master" OFF)
+FindOrCloneRep("sodium" "https://github.com/jedisct1/libsodium" "master" OFF)
+FindOrCloneRep("yojimbo" "https://github.com/mas-bandwidth/yojimbo" "main" OFF)
 
 add_library(ChimpyDeps INTERFACE)
 
@@ -33,7 +32,7 @@ target_link_libraries(ChimpyDeps INTERFACE
       wasmtime-cpp
       nlohmann_json::nlohmann_json
       EnTT::EnTT
-      cereal
+      cereal-c17
       sodium
       yojimbo
       box2d

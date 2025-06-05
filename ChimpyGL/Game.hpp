@@ -54,6 +54,11 @@ public:
     void RemoveAsteroid(class Asteroid* ast);
     std::vector<class Asteroid*>& GetAsteroids() { return mAsteroids; }
 
+    // Game-specific (tower defense)
+    class Grid* GetGrid() { return mGrid; }
+    std::vector<class Enemy*>& GetEnemies() { return mEnemies; }
+    class Enemy* GetNearestEnemy(const Vector2& pos);
+
 private:
     void ProcessInput();
     void UpdateGame();
@@ -99,6 +104,11 @@ private:
     class Ship* mShip;
 
     std::vector<class Asteroid*> mAsteroids;
+
+    // Tower Defense
+    std::vector<class Enemy*> mEnemies;
+    class Grid* mGrid;
+    float mNextEnemy;
 };
 
 }  // namespace EngineG

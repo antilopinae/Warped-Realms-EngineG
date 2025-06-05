@@ -30,8 +30,8 @@ struct HostFunctionBinding {
     HostFuncVariant function_impl;     // C++ реализация
 
     HostFunctionBinding(std::string&& module, std::string&& func, HostFuncVariant&& impl)
-    : import_module_name(std::forward<std::string>(module)),
-    import_function_name(std::forward<std::string>(func)),
-    function_impl(std::forward<HostFuncVariant>(impl)) {}
+        : import_module_name(std::forward<std::string>(module))
+        , import_function_name(std::forward<std::string>(func))
+        , function_impl(std::forward<HostFuncVariant>(impl)) {}
 };
 }  // namespace EngineG::Wasm

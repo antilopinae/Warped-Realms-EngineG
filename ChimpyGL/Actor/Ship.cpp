@@ -21,7 +21,7 @@ Ship::Ship(class Game* game) : Actor(game), mRightSpeed(0.0f), mDownSpeed(0.0f),
       game->GetTexture("Ship03.png"),
       game->GetTexture("Ship04.png"),
 #endif
-        game->GetTexture(ASSETS_DIR "Ship.png"), game->GetTexture(ASSETS_DIR "ShipWithThrust.png")};
+        game->GetTexture("Ship.png"), game->GetTexture("ShipWithThrust.png")};
     mAnimSprite->SetAnimTextures(anims);
     mAnimSprite->SetAnimRanges({AnimSpriteComponent::Animation(1, 1, false), AnimSpriteComponent::Animation(2, 2, false)});
     mAnimSprite->SetNumAnim(1);

@@ -14,4 +14,4 @@ add_library(box2cpp INTERFACE
 
 target_include_directories(box2cpp INTERFACE ${BOX2CPP_PATH}/include)
 target_link_libraries(box2cpp INTERFACE box2d)
-target_compile_options(box2cpp INTERFACE -std=c++20)
+target_compile_features(box2cpp INTERFACE cxx_std_20)

@@ -11,7 +11,7 @@ namespace EngineG {
 Laser::Laser(Game* game) : Actor(game), mDeathTimer(1.0f) {
     // Create a sprite component
     SpriteComponent* sc = new SpriteComponent(this);
-    sc->SetTexture(game->GetTexture(ASSETS_DIR "Laser.png"));
+    sc->SetTexture(game->GetTexture("Laser.png"));
 
     // Create a move component, and set a forward speed
     MoveComponent* mc = new MoveComponent(this);

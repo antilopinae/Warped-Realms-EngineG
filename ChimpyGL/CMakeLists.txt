@@ -13,7 +13,5 @@ target_include_directories(ChimpyGL PRIVATE
   ${cereal_SOURCE_DIR}/include
 )
 
-target_compile_options(ChimpyGL PUBLIC -std=c++20)
-
 include(GenerateExportHeader)
 generate_export_header(ChimpyGL)
