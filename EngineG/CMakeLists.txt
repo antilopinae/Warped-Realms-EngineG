@@ -19,6 +19,21 @@ target_link_libraries(EngineG PUBLIC
   EngineWasm
 )
 
+target_compile_definitions(EngineG PUBLIC SDL_MAIN_HANDLED _USE_MATH_DEFINES)
+
+if(TARGET_WINDOWS)
+    target_compile_definitions(EngineG PUBLIC
+        _WIN32_WINNT=0x0A00
+        _CRT_SECURE_NO_WARNINGS
+    )
+endif()
+
+if(TARGET_LINUX OR TARGET_MACOS)
+    target_compile_definitions(EngineG PUBLIC
+        _GNU_SOURCE
+    )
+endif()
+
 # FetchContent_GetProperties(cereal)
 # target_include_directories(EngineG PRIVATE
 #   ${cereal_SOURCE_DIR}/include

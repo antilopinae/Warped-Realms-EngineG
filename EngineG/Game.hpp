@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Network/Network.hpp"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#include <SDL.h>
+#include <SDL_image.h>
 #include "Wasm/WasmNetworkManager.hpp"
 #include "Wasm/WasmIntegrationService.hpp"
 #include <algorithm>
@@ -14,7 +14,7 @@
 #define ASSETS_DIR "../../Assets/"
 
 #else
-#define ASSETS_DIR "Assets/"
+#define ASSETS_DIR "../Assets/"
 
 #endif
 

@@ -175,21 +175,21 @@ public:
         return Matrix4(temp);
     }
 
-    static Matrix4 CreateOrtho(float width, float height, float near, float far) {
+    static Matrix4 CreateOrtho(float width, float height, float near_, float far_) {
         float temp[4][4] = {{2.0f / width, 0.0f, 0.0f, 0.0f},
                             {0.0f, 2.0f / height, 0.0f, 0.0f},
-                            {0.0f, 0.0f, 1.0f / (far - near), 0.0f},
-                            {0.0f, 0.0f, near / (near - far), 1.0f}};
+                            {0.0f, 0.0f, 1.0f / (far_ - near_), 0.0f},
+                            {0.0f, 0.0f, near_ / (near_ - far_), 1.0f}};
         return Matrix4(temp);
     }
 
-    static Matrix4 CreatePerspectiveFOV(float fovY, float width, float height, float near, float far) {
+    static Matrix4 CreatePerspectiveFOV(float fovY, float width, float height, float near_, float far_) {
         float yScale = Math::Cot(fovY / 2.0f);
         float xScale = yScale * height / width;
         float temp[4][4] = {{xScale, 0.0f, 0.0f, 0.0f},
                             {0.0f, yScale, 0.0f, 0.0f},
-                            {0.0f, 0.0f, far / (far - near), 1.0f},
-                            {0.0f, 0.0f, -near * far / (far - near), 0.0f}};
+                            {0.0f, 0.0f, far_ / (far_ - near_), 1.0f},
+                            {0.0f, 0.0f, -near_ * far_ / (far_ - near_), 0.0f}};
         return Matrix4(temp);
     }
 

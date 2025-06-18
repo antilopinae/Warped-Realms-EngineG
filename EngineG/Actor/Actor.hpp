@@ -10,7 +10,7 @@ using namespace EngineG::Math;
 #define ASSETS_DIR "../../Assets/"
 
 #else
-#define ASSETS_DIR "Assets/"
+#define ASSETS_DIR "../Assets/"
 
 #endif
 

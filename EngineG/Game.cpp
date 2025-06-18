@@ -1,5 +1,9 @@
 #include "Game.hpp"
 
+#define IMGUI_IMPL_API
+#define IMGUI_API
+#include <imgui.h>
+
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/Math/Color.h>
@@ -9,7 +13,6 @@
 
 #include <SDL.h>
 #include <SDL_image.h>
-#include <imgui.h>
 #include <imnodes.h>
 #include <sodium.h>
 #include <yojimbo.h>
@@ -27,13 +30,13 @@
 #include "Actor/Ship.hpp"
 
 #include "Math/Math.hpp"
-
 #include <cmath>
+
 #include <entt/entt.hpp>
 #include <fstream>
 #include <iostream>
 
-constexpr float f_pi = M_PI;
+constexpr float f_pi = 3.14159265358979323846f;
 
 #include <box2cpp/box2cpp.h>
 #include <box2cpp/debug_imgui_renderer.h>
