@@ -1,0 +1,6 @@
+{
+  "package_name": "behavior_pack_A",
+  "wasm_file_name": "moduleA_c.wasm",
+  "target_actor_type": "GenericPlayer",
+  "target_script_slot_name": "main_controller"
+}

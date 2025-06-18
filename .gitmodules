@@ -1,0 +1,15 @@
+[submodule "Deps/corrade"]
+	path = Deps/corrade
+	url = https://github.com/mosra/corrade.git
+[submodule "Deps/magnum"]
+	path = Deps/magnum
+	url = https://github.com/mosra/magnum.git
+[submodule "Deps/magnum-integration"]
+	path = Deps/magnum-integration
+	url = https://github.com/mosra/magnum-integration.git
+[submodule "Deps/wasmtime"]
+	path = Deps/wasmtime
+	url = https://github.com/bytecodealliance/wasmtime.git
+[submodule "Deps/wasmtime-cpp"]
+	path = Deps/wasmtime-cpp
+	url = https://github.com/bytecodealliance/wasmtime-cpp.git
